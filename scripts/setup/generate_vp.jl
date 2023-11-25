@@ -37,7 +37,7 @@ function generate_virtual_population(TMZ_params, drug_params, param_values, para
 
     # Populate the TMZ parameters in the population matrix
     for (i, param) in enumerate(TMZ_param_names)
-        # Generate samples for each parameter
+        # Generate samples for each parameter (SCALED TO MATCH UNITS)
         sample = rand(LogNormal(log(TMZ_params[param].mu), TMZ_params[param].sigma), num_patients) .* TMZ_params[param].mult
         # Assign samples to the appropriate row in the population matrix
         population[TMZ_indices[i], :] = sample
