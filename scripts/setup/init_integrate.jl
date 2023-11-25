@@ -1,6 +1,4 @@
-include("../../model/$(drug)_pkpd2.jl")
-include("../../model/$(drug)_dosing2.jl")
-include("../../model/$(drug)_params.jl")
+using DifferentialEquations, ModelingToolkit
 
 u0 = zeros(9)
 u0[1] = 17.7

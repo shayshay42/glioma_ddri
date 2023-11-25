@@ -6,6 +6,11 @@ function main(drug="rg", num_patients=1000, seed=1234)
     Pkg.activate(".")
     Pkg.instantiate()
 
+    include("../../model/$(drug)_pkpd2.jl")
+    include("../../model/$(drug)_dosing2.jl")
+    include("../../model/$(drug)_params.jl")
+
+
     # Step 0: Verify the existence of model, dosing, and params files
     verify_required_files([
         "model/gdc_dosing2.jl",
