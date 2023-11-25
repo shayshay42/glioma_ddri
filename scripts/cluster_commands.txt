@@ -1,0 +1,19 @@
+ssh -X hajhashs@ssh.dms.umontreal.ca
+password
+cd /NOBACKUP/hajhashs/vctrial (has the repository but may need to pull off github)
+cd DosageOptimization.jl
+simulation -> choose machine -> connect
+nohup env JULIA_NUM_THREADS=23 julia ./scripts/optimization/vp_optimization.jl >> output26june.log &
+
+nohup env JULIA_NUM_THREADS=30 stdbuf -o0 julia -p 30 ./scripts/optimization/vp_optimization2.jl > 15july.out 2> 15july.err &
+env JULIA_NUM_THREADS=26 stdbuf -o0 julia -p 26 ./scripts/optimization/vp_optimization2.jl
+nohup julia ./scripts/optimization/vp_optimization2.jl > 17july.out 2> 17july.err &
+
+
+
+cd NOBACKUP
+export $JULIA_NUM_THREADS=60
+nohub julia ./........... > date.out 2> date.err &
+
+from local machine:
+scp hajhashs@ssh.dms.umontreal.ca:/NOBACKUP/hajhashs/vctrial/GitHub/minimal_optim_dms/results/optima_rg_lfbgs_auc_oct24_dms.jls .
