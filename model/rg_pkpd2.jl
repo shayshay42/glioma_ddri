@@ -5,6 +5,14 @@ function pk_pd!(du,u,p,t)#(du::Vector{Float64}, u::Vector{Float64}, p::Vector{Fl
     gamma_1, psi, C0, D0, r, K, BW, IC50_1, Imax_1, IC50_2, gamma_2, Imax_2, xi, VD1, Cl1, k23, ka1, k32, Cl2, ka2, Vpla, Q, Vtis = p[1:length(ode_params)]
     xi = IC50_1/IC50_2
     C, D, AbsTMZ, PlaTMZ, CSFTMZ, AbsRG, PlaRG, TisRG, cAUC = u
+
+    dAbsTMZ = -ka1 * AbsTMZ
+    dPlaTMZ = ka1 * AbsTMZ - (Cl1 / VD1) * PlaTMZ - k23 * PlaTMZ + k32 * CSFTMZ
+    dCSFTMZ = k23 * PlaTMZ - k32 * CSFTMZ
+
+    dAbsRG = -ka2 * AbsRG
+    dPlaRG = ka2 * AbsRG - (Cl2 / Vpla) * PlaRG + (Q / Vtis) * TisRG - (Q / Vpla) * PlaRG
+    dTisRG = -(Q / Vtis) * TisRG + (Q / Vpla) * PlaRG
    
     cCSFTMZ = CSFTMZ / 140
     cPlaRG = PlaRG / (1000 * Vpla)
@@ -32,14 +40,6 @@ function pk_pd!(du,u,p,t)#(du::Vector{Float64}, u::Vector{Float64}, p::Vector{Fl
 
     dC = C * r * log(K / C) - delta * C
     dD = delta * C
-
-    dAbsTMZ = -ka1 * AbsTMZ
-    dPlaTMZ = ka1 * AbsTMZ - (Cl1 / VD1) * PlaTMZ - k23 * PlaTMZ + k32 * CSFTMZ
-    dCSFTMZ = k23 * PlaTMZ - k32 * CSFTMZ
-
-    dAbsRG = -ka2 * AbsRG
-    dPlaRG = ka2 * AbsRG - (Cl2 / Vpla) * PlaRG + (Q / Vtis) * TisRG - (Q / Vpla) * PlaRG
-    dTisRG = -(Q / Vtis) * TisRG + (Q / Vpla) * PlaRG
 
     dcAUC = C
 
