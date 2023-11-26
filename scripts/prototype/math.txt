@@ -1,0 +1,6 @@
+
+solve x' = -ax, y'=ax-by-cy+dz, z'=cy-dz, where x(0) = x0, y(0)=y0 and z(0)=z0
+, where x(0) = x0, y(0)=y0 and z(0)=z0
+
+SymbolicUtils.BasicSymbolic{Real}[Differential(t)(x(t)) / (-a), 
+((-d*(Differential(t)(z(t)) + (-c*(Differential(t)(y(t)) + Differential(t)(x(t)))) / (-b - c))) / (-d + (-c*d) / (-b - c)) + Differential(t)(y(t)) + Differential(t)(x(t))) / (-b - c), (Differential(t)(z(t)) + (-c*(Differential(t)(y(t)) + Differential(t)(x(t)))) / (-b - c)) / (-d + (-c*d) / (-b - c))]
