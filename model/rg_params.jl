@@ -25,3 +25,6 @@ Vtis    = 0.00299745 #V
 ode_params = [gamma_1,psi,C0,D0,r,K,BW,IC50_1,Imax_1,IC50_2,gamma_2,Imax_2,xi,VD1,Cl1,k23,ka1,k32,Cl2,ka2,Vpla,Q,Vtis];
 
 param_order = ["gamma_1", "psi", "C0", "D0", "r", "K", "BW", "IC50_1", "Imax_1", "IC50_2", "gamma_2", "Imax_2", "xi", "VD1", "Cl1", "k23", "ka1", "k32", "Cl2", "ka2", "Vpla", "Q", "Vtis"]
+
+ics = (C=17.0, D=0.0, AbsTMZ=0.0, PlaTMZ=0.0, CSFTMZ=0.0, AbsRG=0.0, PlaRG=0.0, TisRG=0.0, cAUC=0.0)
+u0 = [ics.C, ics.D, ics.AbsTMZ, ics.PlaTMZ, ics.CSFTMZ, ics.AbsRG, ics.PlaRG, ics.TisRG, ics.cAUC]
