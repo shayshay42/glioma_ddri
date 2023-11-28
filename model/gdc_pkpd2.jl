@@ -1,6 +1,3 @@
-include("../utilities/utils.jl")
-include("gdc_params.jl")
-
 function pk_pd!(du, u, p, t)
     gamma_1, psi, C0, D0, r, K, BW, IC50_1, Imax_1, IC50_2, gamma_2, Imax_2, xi, VD1, Cl1, k23, ka1, k32, ka2, V2, kel, k12, k21 = p[1:length(ode_params)]
     xi = IC50_1 / IC50_2
@@ -46,3 +43,13 @@ function pk_pd!(du, u, p, t)
 
     du .= [dC, dD, dAbsTMZ, dPlaTMZ, dCSFTMZ, dAbsGDC, dPlaGDC, dPeriphGDC, dcAUC]
 end
+
+function drug_pk!(du, u, p, t)
+    kel, ka2, V2, k12, k21 = p[1:end-1]
+    AbsGDC, PlaGDC, PeriphGDC = u
+    dAbsGDC = -ka2 * AbsGDC
+    dPlaGDC = ka2 * AbsGDC - kel * PlaGDC + k21 * PeriphGDC - k12 * PlaGDC
+    dPeriphGDC = -k21 * PeriphGDC + k12 * PlaGDC
+    du .= [dAbsGDC, dPlaGDC, dPeriphGDC]
+end
+

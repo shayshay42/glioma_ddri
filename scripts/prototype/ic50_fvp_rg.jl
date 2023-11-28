@@ -8,15 +8,19 @@ println("this the IC50 for $drug: ", IC50_2)
 
 using DifferentialEquations, ModelingToolkit
 
-function drug_pk(du, u, p, t)
-    Cl2, ka2, Vpla, Q, Vtis = p[1:length(ode_params)]
+function rg_pk(du, u, p, t)
+    Cl2, ka2, Vpla, Q, Vtis = p
     AbsRG, PlaRG, TisRG = u
     dAbsRG = -ka2 * AbsRG
     dPlaRG = ka2 * AbsRG - (Cl2 / Vpla) * PlaRG + (Q / Vtis) * TisRG - (Q / Vpla) * PlaRG
     dTisRG = -(Q / Vtis) * TisRG + (Q / Vpla) * PlaRG
     du .= [dAbsRG, dPlaRG, dTisRG]
 end
-
+p = [Cl2, ka2, Vpla, Q, Vtis]
+u0 = [0.0, 0.0, 0.0]
+tspan = (0.0, 72.0)
+prob = ODEProblem(drug_pk, u0, tspan, p)
+sol = solve(prob, Tsit5(), reltol=1e-8, abstol=1e-8)
 # Function to check if the field name matches 'PlaRG'
 property_name_symbol = Symbol("Pla" * uppercase(drug))
 drug_plasma_index = findfirst(isequal(property_name), fieldnames(typeof(ics)))

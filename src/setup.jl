@@ -27,6 +27,7 @@ end
 
 #inlcude the functions that are used in setting up the struct
 include("../scripts/setup/generate_vp.jl")
+include("../scripts/setup/compute_dose.jl")
 include("../scripts/setup/precompute_scale.jl")
 
 function generate_patients_struct(num_patients, seed, drug)
@@ -39,9 +40,10 @@ function generate_patients_struct(num_patients, seed, drug)
     include("../scripts/setup/init_integrate.jl")
 
     drug_params = eval(Symbol(uppercase(drug) * "_params"))
-
     # Generate population
     population = generate_virtual_population(TMZ_params, drug_params, ode_params, param_order, num_patients, seed)
+
+    ic50_fractional_doses = compute_dose(population, drug_params)
 
     max_dose_min_tumor, min_dose_max_tumor = compute_loss_scaling(population, doses, fill(min_drug_dosage/length(doses), length(doses)))
 
