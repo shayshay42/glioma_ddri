@@ -1,5 +1,5 @@
-#want to instead of the whole set just get 1 dose to reflec thisusing DifferentialEquations, Optim
-#want to instead of the whole set just get 1 dose to reflec thisusing DifferentialEquations, Optim
+#want to instead of the whole set just get 1 dose to reflec this
+using DifferentialEquations, Opti
 
 function compute_dose(population, pk_params)
     
@@ -9,8 +9,8 @@ function compute_dose(population, pk_params)
     prob = ODEProblem(drug_pk!, u0, tspan, p)
 
     function objective(dose, pk_values, ic50, volume, mult)
-        tmp_prob = remake(prob, u0=[0.0, dose, 0.0], p=pk_values)
-        tmp_sol = solve(tmp_prob, callback=cb)# abstol=1e-10, reltol=1e-10,dtmax=1)#, alg_hints=[:stiff])
+        tmp_prob = remake(prob, u0=[dose, 0.0, 0.0], p=pk_values)
+        tmp_sol = solve(tmp_prob)
         peak_PlaRG = maximum(tmp_sol[2, :])  # Assuming PlaRG is the second variable
         return abs2(peak_PlaRG - mult*(ic50*(volume*1000))) #trajectories don't cross so we can be sure that the amount is minimal for reaching this peak
     end
