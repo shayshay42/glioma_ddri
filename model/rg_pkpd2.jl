@@ -55,3 +55,12 @@ function drug_pk!(du, u, p, t)
     dTisRG = -(Q / Vtis) * TisRG + (Q / Vpla) * PlaRG
     du .= [dAbsRG, dPlaRG, dTisRG]
 end
+
+function drug_pk_dose!(du, u, p, t)
+    Cl2, ka2, Vpla, Q, Vtis = p
+    AbsRG, PlaRG, TisRG, dose = u
+    dAbsRG = -ka2 * AbsRG
+    dPlaRG = ka2 * AbsRG - (Cl2 / Vpla) * PlaRG + (Q / Vtis) * TisRG - (Q / Vpla) * PlaRG
+    dTisRG = -(Q / Vtis) * TisRG + (Q / Vpla) * PlaRG
+    du .= [dAbsRG, dPlaRG, dTisRG, 0.0]
+end

@@ -53,3 +53,11 @@ function drug_pk!(du, u, p, t)
     du .= [dAbsGDC, dPlaGDC, dPeriphGDC]
 end
 
+function drug_pk_dose!(du, u, p, t)
+    kel, ka2, V2, k12, k21 = p[1:end-1]
+    AbsGDC, PlaGDC, PeriphGDC, dose = u
+    dAbsGDC = -ka2 * AbsGDC
+    dPlaGDC = ka2 * AbsGDC - kel * PlaGDC + k21 * PeriphGDC - k12 * PlaGDC
+    dPeriphGDC = -k21 * PeriphGDC + k12 * PlaGDC
+    du .= [dAbsGDC, dPlaGDC, dPeriphGDC, 0.0]
+end
