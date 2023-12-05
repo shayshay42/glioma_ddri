@@ -26,17 +26,16 @@ function compute_dose2(population, pk_params)
         println("\rPatient: $i")
         pk_param_names = collect(keys(pk_params))
         pk_indices = indexin(pk_param_names, param_order)
-        pk_param_values= population[pk_indices, :]
-        global ic50 = population[indexin(["IC50_2"], param_order), :]
+        pk_param_values= population[pk_indices, i]
+        ic50 = population[indexin(["IC50_2"], param_order), i][1]
         if "Vpla" in param_order
-            global volume = population[indexin(["Vpla"], param_order), :]
+            volume = population[indexin(["Vpla"], param_order), i][1]
         elseif "V2" in param_order
-            global volume = population[indexin(["V2"], param_order), :]
+            volume = population[indexin(["V2"], param_order), i][1]
         end
         # Boundary condition function
 
         for (j,mult) in enumerate(mults)
-            global mult = mult
             function bc_drug_pk!(residual, sol, p, t)
                 residual[1] = maximum(sol[2,:]) - ((ic50 * (1000 * volume))*mult) # Ensure the second state matches ic50 amount conversion at end time
                 residual[2] = sol[1][2] # Ensure the seocnd state is 0 at the beginning
@@ -44,7 +43,7 @@ function compute_dose2(population, pk_params)
                 residual[4] = sol[1][1]
             end
             u0_temp = [0.0, 0.0, 0.0, initial_guess[j]]
-            p_temp = pk_param_values[:,i]
+            p_temp = pk_param_values
             prob_temp = BVProblem(drug_pk_dose!, bc_drug_pk!, u0_temp, tspan, p_temp)
             sol_temp = solve(prob_temp, Shooting(KenCarp4()), callback=cb)
             input_dose = sol_temp[4, 1]

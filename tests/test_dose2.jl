@@ -18,8 +18,6 @@ include("../model/$(drug)_params.jl")
 
 function test_dose_matrix(num_patients, seed, drug)
 
-
-
     drug_params = eval(Symbol(uppercase(drug) * "_params"))
     # Generate population
     population = generate_virtual_population(TMZ_params, drug_params, ode_params, param_order, num_patients, seed)
