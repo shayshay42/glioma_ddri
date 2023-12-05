@@ -46,9 +46,6 @@ doses = ones(length(event_times)).*3000.0
 #     start_state = [state_before_dose[1]+dose, state_before_dose[2], state_before_dose[3]]
 # end
 
-
-
-# Initialize arrays to store time points and y_state values
 using Plots
 
 # Assuming functions and parameters are already defined
@@ -67,20 +64,26 @@ y_values = []
 # Start with the initial state
 start_state = u0
 
+# Time since last reset (initial condition or event)
+elapsed_time_since_reset = 0.0
+last_event_time = 0.0  # Time of the last event
+
 # Iterate over the time grid
 for t in time_grid
+    # Update elapsed time since last reset
+    elapsed_time_since_reset = t - last_event_time
+
     # Check if the current time is an event time and apply dose if it is
     if t in event_times
         dose = doses[findfirst(isequal(t), event_times)]  # Get the corresponding dose
-        state_before_dose = [x_state(t, p_analytic, start_state), y_state(t, p_analytic, start_state), z_state(t, p_analytic, start_state)]
+        state_before_dose = [x_state(elapsed_time_since_reset, p_analytic, start_state), y_state(elapsed_time_since_reset, p_analytic, start_state), z_state(elapsed_time_since_reset, p_analytic, start_state)]
         start_state = [state_before_dose[1] + dose, state_before_dose[2], state_before_dose[3]]
-        current_state = start_state
-    else
-        # Calculate state without dose
-        state_before_dose = [x_state(t, p_analytic, start_state), y_state(t, p_analytic, start_state), z_state(t, p_analytic, start_state)]
-        # start_state = state_before_dose
-        current_state = state_before_dose
+        last_event_time = t
+        elapsed_time_since_reset = 0.0  # Reset the elapsed time
     end
+
+    # Calculate state without dose
+    current_state = [x_state(elapsed_time_since_reset, p_analytic, start_state), y_state(elapsed_time_since_reset, p_analytic, start_state), z_state(elapsed_time_since_reset, p_analytic, start_state)]
 
     # Store the time and y_state value
     push!(times, t)
