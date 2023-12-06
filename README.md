@@ -45,3 +45,4 @@ add Zygote Enzyme Flux ForwardDiff GlobalSensitivity SciMLSensitivity
 
 add Plots Random DifferentialEquations ModelingToolkit Optim OptimizationOptimJL OptimizationOptimisers Zygote Enzyme Flux ForwardDiff GlobalSensitivity SciMLSensitivity
 
+Assumes that the order of parameters in the model equations is the same in pkpd!.jl and params.jl and that the pk_params.jl assets has ordered keys with the same order in params.jl and in pk!.jl. These are required in both compute_dose.jl and generate_vp.jl
