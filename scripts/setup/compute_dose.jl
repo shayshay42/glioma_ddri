@@ -3,16 +3,18 @@ using DifferentialEquations, Optim
 function compute_dose(population, pk_params)
 
     function dose_affect!(integrator)
-        SciMLBase.set_proposed_dt!(integrator, 0.01)
+        # SciMLBase.set_proposed_dt!(integrator, 0.01)
         integrator.u[1] += integrator.p[end]
     end
     # cb = PeriodicCallback(dose_affect!, 24.0, initial_affect=true)
-
-    cb = PresetTimeCallback(collect(0:17).*24.0, dose_affect!)
+    event_times = collect(1:18).*24.0
+    cb = PresetTimeCallback(event_times, dose_affect!)
+    
+    tspan = (0.0, event_times[end]+(10.0*24.0))
 
     p = rand(6)
     u0 = [0.0, 0.0, 0.0]
-    tspan = (0.0, 18.0).*24.0
+    # tspan = (0.0, 18.0).*24.0
     prob = ODEProblem(drug_pk!, u0, tspan, p)
 
     function objective(dose, pk_values, ic50, volume, mult)
