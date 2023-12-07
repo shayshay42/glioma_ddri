@@ -1,6 +1,6 @@
-using DifferentialEquations, Optim, OptimizationOptimisers
+using Optim, Optimization, ForwardDiff, DifferentialEquations, StaticArrays, OptimizationOptimisers, OptimizationOptimJL
 
-function compute_dose(population, pk_params)
+function compute_dose3(population, pk_params)
 
     function dose_affect!(integrator)
         # SciMLBase.set_proposed_dt!(integrator, 0.01)
@@ -44,23 +44,17 @@ function compute_dose(population, pk_params)
         end
         # Optimization for each multiplier
         for (j,mult) in enumerate(mults)
-            # Assuming initial_guess[j] is a finite value within the bounds
-            initial_value = [initial_guess[j]]  # Replace this with your actual initial guess
-            # Lower and upper bounds
-            lower_bound = [0.0]  # Lower bound
-            upper_bound = [Inf]  # Upper bound
-            # Optimizer
-            optimizer = Fminbox(BFGS())
-            # Optimization call
-            result = optimize(x -> objective(x, pk_param_values[:,i], ic50[i], volume[i], mult), 
-                            lower_bound, upper_bound, initial_value, optimizer)#, Optim.Options(iterations=10))
+            initial_value = [initial_guess[j]]
+            lower_bound = [0.0]
+            upper_bound = [Inf]
 
-            input_dose = Optim.minimizer(result)
-            patient_doses[j, i] = input_dose[1]
-            minimal_doses[j, i] = Optim.minimum(result)
-            # if j == 6
-            #     println("Patient $i: $result")
-            # end
+            optf = Optimization.OptimizationFunction((dose, p) -> objective(dose, p..., mult), Optimization.AutoForwardDiff())
+            optprob = OptimizationProblem(optf, initial_value, (pk_param_values[:, i], ic50[i], volume[i]), lb=lower_bound, ub=upper_bound)
+            optimizer = Optim.LBFGS()
+            result = solve(optprob, optimizer, maxiters=10)
+
+            patient_doses[j, i] = result.minimizer[1]
+            minimal_doses[j, i] = result.minimum
         end
     end
     return patient_doses, minimal_doses
