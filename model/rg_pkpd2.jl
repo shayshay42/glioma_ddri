@@ -64,3 +64,23 @@ function drug_pk_dose!(du, u, p, t)
     dTisRG = -(Q / Vtis) * TisRG + (Q / Vpla) * PlaRG
     du .= [dAbsRG, dPlaRG, dTisRG, 0.0]
 end
+
+function simple_pkpd!(du, u, p, t)
+    gamma_1,psi,C0,D0,r,K,BW,IC50_1,Imax_1,IC50_2,gamma_2,Imax_2,xi,VD1,Cl1,k23,ka1,k32,Cl2,ka2,Vpla,Q,Vtis = p
+    C, AbsRG, PlaRG, TisRG, dose = u
+
+    cPlaRG = PlaRG / (1000 * Vpla)
+    exp2 = (cPlaRG /(psi*IC50_2))^gamma_2
+    E = Imax_2 * exp2 / (exp2 + 1)
+
+    t = (-log(log(C/K) / log(C0/K)) / r) + 72
+    fun = K * (C0/K)^exp(-r * t)
+    # delta = (E * fun) / (72 * C)
+
+    dC = C*r*log(K/C) - (E*fun)/72
+    dAbsRG = -ka2 * AbsRG
+    dPlaRG = ka2 * AbsRG - (Cl2 / Vpla) * PlaRG + (Q / Vtis) * TisRG - (Q / Vpla) * PlaRG
+    dTisRG = -(Q / Vtis) * TisRG + (Q / Vpla) * PlaRG
+
+    du .= [dC, dAbsRG, dPlaRG, dTisRG, 0.0]
+end

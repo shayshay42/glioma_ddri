@@ -1,4 +1,4 @@
-solution_string = read("scripts/prototype/analytic_sol.txt", String)
+solution_string = read("scripts/prototype/analytical_solution/analytic_sol.txt", String)
 solution_string = replace(solution_string, "{" => "")
 solution_string = replace(solution_string, "}" => "")
 (x_rhs, y_rhs, z_rhs) = split(solution_string, ",")
@@ -25,9 +25,9 @@ z_state = parse_math(z_rhs)
 event_times = collect(1:18).*24.0
 tspan = (0.0, event_times[end]+(10.0*24.0))
 u0 = [3000.0, 0.0, 0.0]  # [x0, y0, z0]
-include("../../assets/pk_params.jl")
+include("../../../assets/pk_params.jl")
 drug = "rg"
-include("../../model/$(drug)_params.jl")
+include("../../../model/$(drug)_params.jl")
 drug_params = eval(Symbol(uppercase(drug) * "_params"))
 pk_param_names = collect(keys(drug_params))
 pk_indices = indexin(pk_param_names, param_order)
@@ -91,4 +91,5 @@ for t in time_grid
 end
 
 # Plot the y_state values over time
-plot(times, y_values, title="y_state Over Time with Perturbations", xlabel="Time", ylabel="y_state", legend=false)
+plot(times./24, y_values, title="RG PK analytical solution Plasma Compartment", xlabel="Time (days)", ylabel="Amount (mg)", label="RG Plasma Compartment")
+plot!(times./24, ones(length(times)).*(1.0*(IC50_2*(Vpla*1000))), label="IC50 = $(1.0*(IC50_2*(Vpla*1000)))")
