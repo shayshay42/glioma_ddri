@@ -14,7 +14,26 @@ println("this is the drug: ", drug)
 println("this is the IC50 for TMZ: ", IC50_1, " converted to amount: ", IC50_1 * 140)
 println("this the IC50 for $drug: ", IC50_2, " converted to amount: ", IC50_2 * 1000 * Vpla)
 
-include("../../../scripts/setup/init_integrate.jl")
+using DifferentialEquations, ModelingToolkit
+
+@register dose_heaviside()
+
+u0 = zeros(9)
+u0[1] = 17.7
+tspan = (0,end_time+7).*hours
+p = [ode_params; doses]
+prob = ODEProblem(pk_pd_alt!,u0,tspan,p)
+# sys = modelingtoolkitize(prob)
+# sys = structural_simplify(sys)
+# func = ODEFunction(sys, jac=true)
+# prob_jac = ODEProblem(func, u0, tspan, p)
+sol = solve(prob, tstops=inject_times, d_discontinuities=inject_times)
+
+
+
+
+
+
 
 # Define the saving function
 function save_func(u, t, integrator)
@@ -60,37 +79,3 @@ tmz_adjuv_dose = 0.0#150.0*avg_human_surface_area
 # Solve the problem with the callback
 edit_prob = remake(prob_jac, tspan=(0,600))
 sol = solve(edit_prob, callback=hit)#, isoutofdomain=(y,p,t)->any(x->x<0,y))
-
-# Access the saved values
-saved_values = saving_cb.affect!.saved_values.saveval
-timepoints = saving_cb.affect!.saved_values.t
-
-using Plots
-
-# Extract E and delta values
-E_values = [val[1] for val in saved_values] # Extracting first element of each tuple
-delta_values = [val[2] for val in saved_values] # Extracting second element of each tuple
-plarrg_values = [val[3] for val in saved_values] # Extracting second element of each tuple
-cplarrg_values = [val[4] for val in saved_values] # Extracting second element of each tuple
-ccsftmz_values = [val[5] for val in saved_values] # Extracting second element of each tuple
-
-# Plot E and delta against time
-
-plot(sol.t, sol[7,:]./(1000*Vpla), label="[Plasma RG]", xlabel="Time", ylabel="Value")
-plot!(sol.t, ones(length(sol.t)).*(IC50_2), label="[IC50]")
-
-p1 = plot(sol.t, sol[7,:], label="Plasma RG", xlabel="Time", ylabel="Value", legend=:topleft)
-plot!(sol.t, ones(length(sol.t)).*(IC50_2 * 1000 * Vpla), label="IC50")
-p2 = twinx(p1) 
-plot!(p2, timepoints, E_values, label="Effect", color="red", ylabel="Effect", ylim=[0.0,1.0],ls=:dash, legend=:topright, alpha=0.5)
-
-plot(sol.t, E_values, label="E", xlabel="Time", ylabel="Value", title="E over Time")
-plot!(E_values, label="E_only")
-
-
-
-
-plot(timepoints, delta_values, label="Delta", xlabel="Time", ylabel="Value", title="Delta over Time")
-plot(timepoints, plarrg_values, label="PlaRG", xlabel="Time", ylabel="Value", title="PlaRG over Time")
-plot(timepoints, cplarrg_values, label="cPlaRG", xlabel="Time", ylabel="Value", title="cPlaRG over Time")
-plot(timepoints, ccsftmz_values, label="cCSFTMZ", xlabel="Time", ylabel="Value", title="cCSFTMZ over Time")

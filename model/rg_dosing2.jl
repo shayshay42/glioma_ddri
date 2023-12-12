@@ -39,7 +39,7 @@ rg_dosetimes_set = Set(rg_dosetimes)
 # rg_dose_dict = Dict(zip(rg_dosetimes, doses))
 map = Dict(zip(rg_dosetimes, Int64.(1:length(rg_dosetimes))))
 function affect_dose!(integrator)
-    SciMLBase.set_proposed_dt!(integrator, 0.01)
+    # SciMLBase.set_proposed_dt!(integrator, 0.1)
     
     current_time = integrator.t
 
@@ -61,4 +61,10 @@ hit = PresetTimeCallback(inject_times, affect_dose!)
 min_drug_dosage = 20.0*avg_human_surface_area*length(rg_dosetimes); #minimum drug dosage
 
 
-
+function dose_heaviside(t, dosetimes, dose)
+    if t in dosetimes
+        return dose
+    else
+        return 0.0
+    end
+end

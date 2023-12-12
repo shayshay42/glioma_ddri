@@ -7,4 +7,5 @@ p = [ode_params; 1.0; 1.0;doses]
 prob = ODEProblem(pk_pd!,u0,tspan,p)
 sys = modelingtoolkitize(prob)
 sys = structural_simplify(sys)
-prob_jac = ODEProblem(sys, u0, tspan, p)
+func = ODEFunction(sys, jac=true)
+prob_jac = ODEProblem(func, u0, tspan, p)
