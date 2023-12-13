@@ -16,11 +16,11 @@ end_treat = 42.0
 avg_human_surface_area = 1.7 #m^2
 tmz_treat_dose = 75.0*avg_human_surface_area
 tmz_adjuv_dose = 150.0*avg_human_surface_area
-dose_amount = 1800.0*avg_human_surface_area
+dose_amount = 1920.0*avg_human_surface_area #1800
 
 tmz_treat_dosetimes = spaced_list(end_treat,1.0,0.0,0.0).*hours
 tmz_adjuv_dosetimes = spaced_list(end_time,5.0,23.0,end_treat+28.0).*hours
-rg_dosetimes = spaced_list(end_time-1.0,18.0,10.0,0.0).*hours
+rg_dosetimes = spaced_list(end_time-1.0,18.0,10.0,0.0).*hours #its the opposite18 days off and 10days on
 
 doses = ones(length(rg_dosetimes)).*dose_amount
 
@@ -39,7 +39,7 @@ rg_dosetimes_set = Set(rg_dosetimes)
 # rg_dose_dict = Dict(zip(rg_dosetimes, doses))
 map = Dict(zip(rg_dosetimes, Int64.(1:length(rg_dosetimes))))
 function affect_dose!(integrator)
-    # SciMLBase.set_proposed_dt!(integrator, 0.1)
+    SciMLBase.set_proposed_dt!(integrator, 0.1)
     
     current_time = integrator.t
 
@@ -51,7 +51,7 @@ function affect_dose!(integrator)
     if current_time in rg_dosetimes_set
         p = integrator.p
         # map = p[length(ode_params)]
-        doses = p[length(ode_params)+1:end]
+        doses = p[p_num+nb_scaling_params+1:end]
         current_dose = doses[map[current_time]]
         integrator.u[6] += adjust_dose(current_dose)
     end

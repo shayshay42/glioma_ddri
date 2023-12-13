@@ -59,8 +59,10 @@ avg_human_surface_area=1.7
 # dosage guess for each multiplier of IC50
 initial_guess = [0.0, 1.0, 2.0, 5.0, 10.0, 20.0, 100.0, 500.0, 1000.0, 2000.0, 3000.0].*avg_human_surface_area # Adjust this as needed
 # initialize array to hold patient doses for each multiplier
-gradation = [collect(0.0:0.01:0.09)...,collect(0.1:0.1:0.9)...,collect(0.91:0.01:0.99)...]
-gradation = collect(0.01:0.01:0.99)
+gradation = [collect(0.01:0.01:0.09)...,collect(0.1:0.1:0.9)...,collect(0.91:0.01:0.99)...]
+gradation = [0.000001, 0.00001, 0.0001, 0.001, collect(0.01:0.01:0.99)..., 0.999, 0.9999]
+gradation = [0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.6, 0.75, 0.85, 0.99, 0.999, 0.9999]
+#              11                                                               3000                56000
 # pk_param_values= Cl2, ka2, Vpla, Q, Vtis
 inputs_per_mult = zeros(length(gradation))
 for (j,mult) in enumerate(gradation)
@@ -80,7 +82,6 @@ for (j,mult) in enumerate(gradation)
     sol_temp = solve(prob_temp, Shooting(Rodas4P2()), callback=cb, alg_hints=[:stiff])
     inputs_per_mult[j] = sol_temp[1][5]
 end
-
 #plot bar plot of the doses for effect grdations
 # p = bar(gradation, inputs_per_mult, label="Dose", xlabel="Effect", ylabel="Dose Amount (mg)", title="Dose vs. Effect", color="gray")
 # i=1
@@ -108,6 +109,9 @@ for (i, init_dose) in enumerate(inputs_per_mult)
     fun_sol = K .* (C0/K).^exp.(-r .* t_sol)
     delta_sol = (E_sol .* fun_sol) ./ (72 .* sol[1,:])
 
+    drug_auc = trapezoidal_rule(sol.t, sol[3,:])
+    cell_auc = trapezoidal_rule(sol.t, sol[1,:])
+
     # Get max values for each y-axis
     max_y1 = 35#maximum(sol[3,:])*1.1 # Replace with actual max value of data associated with primary y-axis
     # Set the same relative position for IC50 on both y-axes
@@ -118,10 +122,12 @@ for (i, init_dose) in enumerate(inputs_per_mult)
 
     p = plot(sol.t, sol[3,:], label="PlaRG", xlabel="Time", ylabel="Value", legend=:topleft, ylim=[0.0, max_y1], title="effect_$(gradation[i])_$(init_dose)")
     plot!(sol.t, ones(length(sol.t)).*(IC50_2 * 1000 * Vpla), label="IC50", ls=:dash, alpha=0.5, color="blue")
+    annotate!(sol.t[1],max_y1*0.6, text("Drug AUC: $drug_auc", :left))
+    annotate!(sol.t[1],max_y1*0.5, text("Cell AUC: $cell_auc", :left))
     p2 = twinx(p)
     plot!(p2, sol.t, E_sol, label="Effect", color="red", ylabel="Effect", ylim=[0.0, max_y2],ls=:dash, legend=:topright, alpha=0.5)
     plot!(p2, sol.t, ones(length(sol.t)).*(0.5), label="IC50", color="red", ls=:dash, alpha=0.5)
-    # savefig(p, "results/$(drug)_effect_$(gradation[i])_$(init_dose).png")
+    savefig(p, "results/trial$(i)_$(drug)_effect_$(gradation[i])_$(init_dose).png")
 end
 
 
@@ -130,14 +136,19 @@ end
 
 
 using Plots
+using Printf
+gr()
 
 # Set up the animation
 anim = @animate for (i, init_dose) in enumerate(inputs_per_mult)
     # Bar plot
-    bar_plot = bar(gradation, inputs_per_mult, label="Dose", xlabel="Effect", ylabel="Dose Amount (mg)", color="gray")
+    gradation_labels = [string(x) for x in gradation]
+    bar_plot = bar(gradation_labels, inputs_per_mult, label="Dose", xlabel="Effect", ylabel="Dose Amount (mg)", color="gray", ylim=[0.0, 10000])
     mask = zeros(length(inputs_per_mult))
     mask[i] = init_dose
-    bar!(bar_plot, gradation, mask, label="selected dose", color="red")
+    bar!(bar_plot, gradation_labels, mask, label="selected dose", color="red")
+    formatted_init_dose = @sprintf("%.2f", init_dose)
+    title!(bar_plot, "Effect: $(gradation[i]), Dose: $(formatted_init_dose)")
 
     # Solving the ODE problem (as per your existing code)
     prob_temp = remake(prob_jac, u0=[17.7, 0.0, 0.0, 0.0, init_dose])
@@ -151,6 +162,69 @@ anim = @animate for (i, init_dose) in enumerate(inputs_per_mult)
     fun_sol = K .* (C0/K).^exp.(-r .* t_sol)
     delta_sol = (E_sol .* fun_sol) ./ (72 .* sol[1,:])
 
+    drug_auc = @sprintf("%.2f", trapezoidal_rule(sol.t, sol[3,:]))
+    cell_auc = @sprintf("%.2f", trapezoidal_rule(sol.t, sol[1,:]))  
+
+    # Get max values for each y-axis
+    max_y1 = 35#maximum(sol[3,:])*1.1 # Replace with actual max value of data associated with primary y-axis
+    # Set the same relative position for IC50 on both y-axes
+    relative_position_ic50 = IC50_value / max_y1
+    # Apply the relative position to secondary y-axis
+    ic50_secondary_axis = 0.5/relative_position_ic50
+    max_y2 = ic50_secondary_axis
+    # Trajectory subplot
+    times = sol.t./24.0
+    trajectory_plot = plot(times, sol[3,:], label="PlaRG", xlabel="Time (days)", ylim=[0.0, max_y1], legend=:topleft)
+    plot!(trajectory_plot, times, ones(length(sol.t)).*(IC50_2 * 1000 * Vpla), label="IC50", ls=:dash, alpha=0.5, color="blue")
+    annotate!(trajectory_plot, times[1], max_y1 * 0.6, text("Drug AUC: $drug_auc", :left))
+    annotate!(trajectory_plot, times[1], max_y1 * 0.5, text("Cell AUC: $cell_auc", :left))
+    p2 = twinx(trajectory_plot)
+    plot!(p2, times, E_sol, label="Effect", color="red", ylabel="Effect", ylim=[0.0, max_y2], ls=:dash, legend=:topright, alpha=0.5)
+    plot!(p2, times, ones(length(sol.t)).*(0.5), label="IC50", color="red", ls=:dash, alpha=0.5)
+
+    # Combine subplots into a single figure
+    combined_plot = plot(bar_plot, trajectory_plot, layout = (1, 2), size=(1440, 720))
+    
+    # Optional: save individual frames if needed
+    # savefig(combined_plot, "frame_$i.png")
+end
+
+# Save the animation
+gif(anim, "RG_dose_effect_outputs_animation.gif", fps = 10)
+# video(anim, "dose_trajectory_animation.mp4", fps = 10)
+
+
+using Printf
+
+anim = @animate for (i, init_dose) in enumerate(inputs_per_mult)
+    formatted_init_dose = @sprintf("%.2f", init_dose)
+
+    # Bar plot with thicker bars
+    bar_width = 0.7  # Adjust this value as needed
+    bar_plot = bar(gradation, inputs_per_mult, label="Dose", xlabel="Effect", ylabel="Dose Amount (mg)", color="gray", bar_width=bar_width, yaxis=:log)
+    
+    # Add arrow to indicate selected dose
+    arrow_x = gradation[i]
+    arrow_y = inputs_per_mult[i]
+    annotate!(bar_plot, [(arrow_x, arrow_y, text("Selected", 8, :center, :above)), (arrow_x, arrow_y, arrow(0.5, 30, :red))])
+
+    title!(bar_plot, "Effect: $(gradation[i]), Dose: $(formatted_init_dose)")
+
+    # Solving the ODE problem (as per your existing code)
+    prob_temp = remake(prob_jac, u0=[17.7, 0.0, 0.0, 0.0, init_dose])
+    sol = solve(prob_temp, Rodas4P2(; linsolve = nothing), callback=cb)
+
+    # auxillary functions computing for plotting
+    cPlaRG_sol = sol[3,:] ./ (1000 * Vpla)
+    exp2_sol = (cPlaRG_sol ./(psi*IC50_2)).^gamma_2
+    E_sol = (exp2_sol.*Imax_2) ./ (exp2_sol .+ 1)
+    t_sol = (-log.(log.(sol[1,:]./K) ./ log(C0/K)) ./ r) .+ 72
+    fun_sol = K .* (C0/K).^exp.(-r .* t_sol)
+    delta_sol = (E_sol .* fun_sol) ./ (72 .* sol[1,:])
+
+    drug_auc = @sprintf("%.2f", trapezoidal_rule(sol.t, sol[3,:]))
+    cell_auc = @sprintf("%.2f", trapezoidal_rule(sol.t, sol[1,:]))  
+
     # Get max values for each y-axis
     max_y1 = 35#maximum(sol[3,:])*1.1 # Replace with actual max value of data associated with primary y-axis
     # Set the same relative position for IC50 on both y-axes
@@ -161,24 +235,21 @@ anim = @animate for (i, init_dose) in enumerate(inputs_per_mult)
     # Trajectory subplot
     trajectory_plot = plot(sol.t, sol[3,:], label="PlaRG", xlabel="Time", ylim=[0.0, max_y1], legend=:topleft)
     plot!(trajectory_plot, sol.t, ones(length(sol.t)).*(IC50_2 * 1000 * Vpla), label="IC50", ls=:dash, alpha=0.5, color="blue")
+    annotate!(trajectory_plot, sol.t[1], max_y1 * 0.6, text("Drug AUC: $drug_auc", :left))
+    annotate!(trajectory_plot, sol.t[1], max_y1 * 0.5, text("Cell AUC: $cell_auc", :left))
     p2 = twinx(trajectory_plot)
     plot!(p2, sol.t, E_sol, label="Effect", color="red", ylabel="Effect", ylim=[0.0, max_y2], ls=:dash, legend=:topright, alpha=0.5)
     plot!(p2, sol.t, ones(length(sol.t)).*(0.5), label="IC50", color="red", ls=:dash, alpha=0.5)
 
     # Combine subplots into a single figure
-    combined_plot = plot(bar_plot, trajectory_plot, layout = (1, 2), size=(1080, 720) ,title="effect_$(gradation[i])_$(init_dose)")
+    combined_plot = plot(bar_plot, trajectory_plot, layout = (1, 2), size=(1080, 720))
     
     # Optional: save individual frames if needed
     # savefig(combined_plot, "frame_$i.png")
 end
 
-# Save the animation
-gif(anim, "dose_trajectory_animation.gif", fps = 10)
-video(anim, "dose_trajectory_animation.mp4", fps = 10)
 
-
-
-
+gif(anim, "dose_trajectory_animation3.gif", fps = 10)
 
 
 

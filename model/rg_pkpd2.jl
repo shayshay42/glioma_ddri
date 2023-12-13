@@ -1,6 +1,6 @@
 function pk_pd!(du,u,p,t)#(du::Vector{Float64}, u::Vector{Float64}, p::Vector{Float64}, t::Float64)
     # gamma_1, psi, C0, D0, r, K, BW, IC50_1, Imax_1, IC50_2, gamma_2, Imax_2, xi, VD1, Cl1, k23, ka1, k32, Cl2, ka2, Vpla, Q, Vtis = p[1:length(ode_params)]
-    gamma_1,psi,C0,D0,r,K,BW,IC50_1,Imax_1,IC50_2,gamma_2,Imax_2,xi,VD1,Cl1,k23,ka1,k32,Cl2,ka2,Vpla,Q,Vtis = p[1:length(ode_params)]
+    gamma_1,psi,C0,D0,r,K,BW,IC50_1,Imax_1,IC50_2,gamma_2,Imax_2,xi,VD1,Cl1,k23,ka1,k32,Cl2,ka2,Vpla,Q,Vtis = p[1:p_num]#length(ode_params)]
     # for name in keys(p)
     #     eval(:($name = nt.$name))
     # end
@@ -19,9 +19,9 @@ function pk_pd!(du,u,p,t)#(du::Vector{Float64}, u::Vector{Float64}, p::Vector{Fl
     cPlaRG = PlaRG / (1000 * Vpla)
 
     #domain error
-    # cCSFTMZ = erelu(cCSFTMZ)
-    # cPlaRG = erelu(cPlaRG)
-    # C = erelu(C)
+    cCSFTMZ = erelu(cCSFTMZ)
+    cPlaRG = erelu(cPlaRG)
+    C = erelu(C)
 
     # pi1 = psi * IC50_1
     exp1 = (cCSFTMZ /(psi*IC50_1))^gamma_1
@@ -43,6 +43,8 @@ function pk_pd!(du,u,p,t)#(du::Vector{Float64}, u::Vector{Float64}, p::Vector{Fl
     dcAUC = C
     du .= [dC, dD, dAbsTMZ, dPlaTMZ, dCSFTMZ, dAbsRG, dPlaRG, dTisRG, dcAUC]#, dpRGauc]
 end
+# create a dictionary of the state and their index
+states = OrderedDict(zip(["C", "D", "AbsTMZ", "PlaTMZ", "CSFTMZ", "AbsRG", "PlaRG", "TisRG", "cAUC"], 1:9))
 
 function pk_pd_alt!(du,u,p,t)#(du::Vector{Float64}, u::Vector{Float64}, p::Vector{Float64}, t::Float64)
     gamma_1,psi,C0,D0,r,K,BW,IC50_1,Imax_1,IC50_2,gamma_2,Imax_2,xi,VD1,Cl1,k23,ka1,k32,Cl2,ka2,Vpla,Q,Vtis = p[1:p_num]
@@ -125,3 +127,4 @@ function simple_pkpd!(du, u, p, t)
 
     du .= [dC, dAbsRG, dPlaRG, dTisRG, 0.0]
 end
+

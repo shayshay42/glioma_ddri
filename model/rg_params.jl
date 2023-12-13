@@ -27,6 +27,8 @@ Vtis    = RG_params["Vtis"].mu * RG_params["Vtis"].mult#0.00299745 #V
 ode_params = [gamma_1,psi,C0,D0,r,K,BW,IC50_1,Imax_1,IC50_2,gamma_2,Imax_2,xi,VD1,Cl1,k23,ka1,k32,Cl2,ka2,Vpla,Q,Vtis];
 param_order = ["gamma_1", "psi", "C0", "D0", "r", "K", "BW", "IC50_1", "Imax_1", "IC50_2", "gamma_2", "Imax_2", "xi", "VD1", "Cl1", "k23", "ka1", "k32", "Cl2", "ka2", "Vpla", "Q", "Vtis"]
 const p_num = length(ode_params)
+default_scaling = [1.0,1.0]
+const nb_scaling_params = length(default_scaling)
 # Create the named tuple
 # ode_p = NamedTuple{Tuple(Symbol.(param_order))}(ode_params)
 
