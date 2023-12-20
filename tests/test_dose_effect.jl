@@ -34,7 +34,7 @@ function compute_doses(population, gradation)
     return gradation, doses_matrix, retcodes
 end
 
-num_patients = 1000
+num_patients = 100
 seed = 123
 drug = "rg"
 
@@ -42,12 +42,21 @@ drug = "rg"
 population, drug_dosetimes, drug_params = generate_population(drug, num_patients, seed)
 
 # Compute doses
-gradation = [0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99, 0.999]
+gradation = [1e-5, 0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0-1e-5]
 gradation, doses_matrix, retcodes = compute_doses(population, gradation)
 # gotta 
 max_doses = doses_matrix[end,:]
 
+#average doses
+avg_dose_per_gradation = mean(doses_matrix, dims=2)
+
 # println(retcodes)
+include("../scripts/setup/compute_outputs.jl")
+include("../scripts/setup/precompute_scale.jl")
+max_dose_min_tumor, min_dose_max_tumor = compute_loss_scaling_effect_based(population, doses_matrix[end,:], doses_matrix[1,:], drug_dosetimes)
+scaling = [collect(s) for s in zip(max_dose_min_tumor, min_dose_max_tumor, doses_matrix[end,:], doses_matrix[1,:])]
+k = 1
+outputs = get_outputs(population[:,k], ones(length(drug_dosetimes)).*avg_dose_per_gradation[1], scaling[k], drug)
 
 include("../scripts/setup/init_integrate.jl")
 # Compute loss scaling

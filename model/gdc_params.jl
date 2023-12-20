@@ -27,3 +27,6 @@ k21     =GDC_params["k21"].mu * GDC_params["k21"].mult#26.4##V
 ode_params = [gamma_1,psi,C0,D0,r,K,BW,IC50_1,Imax_1,IC50_2,gamma_2,Imax_2,xi,VD1,Cl1,k23,ka1,k32,ka2,V2,kel,k12,k21];
 
 param_order = ["gamma_1", "psi", "C0", "D0", "r", "K", "BW", "IC50_1", "Imax_1", "IC50_2", "gamma_2", "Imax_2", "xi", "VD1", "Cl1", "k23", "ka1", "k32", "ka2", "V2", "kel", "k12", "k21"]
+const p_num = length(ode_params)
+default_scaling = [1.0,1.0]
+const nb_scaling_params = length(default_scaling)

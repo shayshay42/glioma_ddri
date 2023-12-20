@@ -61,3 +61,28 @@ function drug_pk_dose!(du, u, p, t)
     dPeriphGDC = -k21 * PeriphGDC + k12 * PlaGDC
     du .= [dAbsGDC, dPlaGDC, dPeriphGDC, 0.0]
 end
+
+function simple_pkpd!(du, u, p, t)
+    gamma_1,psi,C0,D0,r,K,BW,IC50_1,Imax_1,IC50_2,gamma_2,Imax_2,xi,VD1,Cl1,k23,ka1,k32,ka2,V2,kel,k12,k21 = p
+    C, AbsGDC, PlaGDC, PeriphGDC, dose = u
+    C = erelu(C)
+
+    cPlaGDC = PlaGDC / (1000 * V2)
+    cPlaGDC = erelu(cPlaGDC)
+    exp2 = (cPlaGDC /(psi*IC50_2))^gamma_2
+    E = Imax_2 * exp2 / (exp2 + 1)
+
+    t = (-log(log(C/K) / log(C0/K)) / r) + 72
+    fun = K * (C0/K)^exp(-r * t)
+    # delta = (E * fun) / (72 * C)
+
+    # E = 1.0
+    # fun = 1.0
+
+    dC = C*r*log(K/C) - (E*fun)/72
+    dAbsGDC = -ka2 * AbsGDC
+    dPlaGDC = ka2 * AbsGDC - kel * PlaGDC + k21 * PeriphGDC - k12 * PlaGDC
+    dPeriphGDC = -k21 * PeriphGDC + k12 * PlaGDC
+
+    du .= [dC, dAbsGDC, dPlaGDC, dPeriphGDC, 0.0]
+end
