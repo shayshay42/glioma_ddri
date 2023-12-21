@@ -9,6 +9,7 @@ include("../assets/pk_params.jl")
 
 #specify the struct that holds the patient data
 struct ConditionalOutput
+    doses::Vector{Float64}
     loss::Float64
     ftv::Float64
     drug_auc::Float64
@@ -22,7 +23,7 @@ struct Patient
     # minimal_tumor::Float64
     # maximal_tumor::Float64
     scaling::Vector{Float64}
-    optimal_doses::Vector{Float64}
+    # optimal_doses::Vector{Float64}
     output_measures::Dict{String, ConditionalOutput}
 end
 
@@ -48,12 +49,14 @@ function generate_patients_struct(num_patients, seed, drug; gradation=[1e-5, 0.1
     max_dose_min_tumor, min_dose_max_tumor = compute_loss_scaling_effect_based(population, doses_matrix[end,:], doses_matrix[1,:], drug_dose_times)
     scaling = [collect(s) for s in zip(max_dose_min_tumor, min_dose_max_tumor, doses_matrix[end,:], doses_matrix[1,:])]
 
-    #the loss here is meaningless unless
-    avg_max_dose_min_tumor, avg_min_dose_max_tumor = compute_loss_scaling_effect_based(population, doses_matrix[end,:], doses_matrix[1,:], drug_dose_times)
-    avg_scale = [collect(s) for s in zip(avg_max_dose_min_tumor, avg_min_dose_max_tumor, avg_dose_per_gradation[end], avg_dose_per_gradation[1])]
-                
     #want the average dose per patient
     avg_dose_per_gradation = mean(doses_matrix, dims=2)
+        #the loss here is meaningless unless
+    # print("avg_dose_per_gradation: ", avg_dose_per_gradation)
+    # print("min avg doses", ones(length(num_patients)).*avg_dose_per_gradation[end])
+    avg_max_dose_min_tumor, avg_min_dose_max_tumor = compute_loss_scaling_effect_based(population, ones(num_patients).*avg_dose_per_gradation[end], ones(num_patients).*avg_dose_per_gradation[1], drug_dose_times)
+    avg_scale = [collect(s) for s in zip(avg_max_dose_min_tumor, avg_min_dose_max_tumor, ones(num_patients).*avg_dose_per_gradation[end], ones(num_patients).*avg_dose_per_gradation[1])]
+               
     #store output in the struct
     effect_keys = [string(i)*"effect" for i in gradation]
     # get_outputs(population[:,k], ones(length(drug_dosetimes)).*avg_dose_per_gradation[1], scaling[k], drug)
@@ -85,7 +88,7 @@ function generate_patients_struct(num_patients, seed, drug; gradation=[1e-5, 0.1
         end
 
         for (j, dose) in enumerate(avg_dose_per_gradation)
-            output_measures[string(gradation[j])*"avg_effect"] = get_outputs(population[:,i], ones(length(drug_dose_times)).*dose, avg_scale, drug)
+            output_measures[string(gradation[j])*"avg_effect"] = get_outputs(population[:,i], ones(length(drug_dose_times)).*dose, avg_scale[i], drug)
         end
 
         min_dose = doses_matrix[1,i]
@@ -94,7 +97,8 @@ function generate_patients_struct(num_patients, seed, drug; gradation=[1e-5, 0.1
         output_measures["random"] = get_outputs(population[:,i], random_doses, scaling[i], drug)
 
         # Create a new Patient instance
-        patients[i] = Patient(i, population[:, i], scaling[i], zeros(length(drug_dose_times)), output_measures)
+        # patients[i] = Patient(i, population[:, i], scaling[i], zeros(length(drug_dose_times)), output_measures)
+        patients[i] = Patient(i, population[:, i], scaling[i], output_measures)
     end
 
     

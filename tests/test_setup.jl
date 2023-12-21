@@ -118,4 +118,4 @@ include("../model/$(drug)_dosing2.jl")
 include("../model/$(drug)_params.jl")
 include("../scripts/setup/init_integrate.jl")
 
-paitents = generate_patients_struct(num_patients, seed, drug)
+patients = generate_patients_struct(num_patients, seed, drug)

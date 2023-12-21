@@ -1,6 +1,6 @@
 using Pkg, ArgParse
 
-function main(drug="rg", num_patients=1000, seed=123)
+function main(drug="rg", num_patients=1000, seed=123, filename="patients_loaded_struct.jls")
     # vp_filename = "$(drug)_$(num_patients)_vp.jls"
     # Activate and install project dependencies
     Pkg.activate(".")
@@ -21,13 +21,7 @@ function main(drug="rg", num_patients=1000, seed=123)
     # # Step 1: Create bounds on the varying parameters
     # include("scripts/setup/bounds4.jl")
 
-
-
-
 # USE THE STRUCT FROM THE BEGINNING
-
-
-
 
     # Step 2: Create virtual population
     # run(`julia scripts/setup/generate_vp4.jl --drug $drug --nbr $num_patients --filename $vp_filename --seed $seed`)
@@ -39,7 +33,13 @@ function main(drug="rg", num_patients=1000, seed=123)
     patients = generate_patients_struct(num_patients, seed, drug)
 
     # Step 4: Compute the optimal doses
+    include("../../scripts/optimization/optimize_doses.jl")
+    optima, patients_optim = compute_optimal_doses(patients, drug)
     
+    # Step 5: Save the optimal doses
+    open(filename, "w") do file
+        serialize(file, patients_optim)
+    end;
 
     # # Steps 4-12: Additional pipeline steps
     # # Replace `--args` with actual arguments as needed

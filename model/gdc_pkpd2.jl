@@ -43,6 +43,7 @@ function pk_pd!(du, u, p, t)
 
     du .= [dC, dD, dAbsTMZ, dPlaTMZ, dCSFTMZ, dAbsGDC, dPlaGDC, dPeriphGDC, dcAUC]
 end
+states = OrderedDict(zip(["C", "D", "AbsTMZ", "PlaTMZ", "CSFTMZ", "AbsGDC", "PlaGDC", "PeriphGDC", "cAUC"], 1:9))
 
 function drug_pk!(du, u, p, t)
     kel, ka2, V2, k12, k21 = p[1:end-1]
