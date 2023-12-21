@@ -180,13 +180,9 @@ erelu(x::Real) = max(eps(), x)
 # end
 
 
-function loss(θ, ode_params, scaling)
-  drug_min_scaling = scaling[4]
-  drug_max_scaling = scaling[3]
-  prob_temp = remake(prob, p=[parameters..., scaling..., doses...])
-  sol_temp = solve(prob_temp, Rodas4P2(), callback=hit, sensealg=nothing)
-  cell = (sol_temp[end,end] - scaling[1])/(scaling[2]-scaling[1])
-  drug = (sum(abs,doses)-drug_min_scaling)/(drug_max_scaling-drug_min_scaling)
-  loss = cell + drug
-  return loss
-end
+# function loss(θ, ode_params)
+#   int_sol = solve(prob_jac, nothing, p=[ode_params;θ], callback=hit, sensealg=nothing)
+#   cell = (int_sol[end,end]-ode_params[end-1])/(ode_params[end]-ode_params[end-1])
+#   drug = (sum(abs,θ)-drug_min_scaling)/(drug_max_scaling-drug_min_scaling)
+#   return  cell + drug
+# end

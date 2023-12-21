@@ -2,6 +2,12 @@ using Pkg
 Pkg.activate(".")
 Pkg.instantiate()
 
+using Plots
+using StatsPlots
+gr()
+# pyplot()
+
+
 #add the utils function mainly logit and erelu used by functions in this file
 include("../utilities/utils.jl")
 #holds the NLMEM parameters for the PK model
@@ -108,7 +114,7 @@ function generate_patients_struct(num_patients, seed, drug; gradation=[1e-5, 0.1
     return patients
 end
 
-num_patients = 20
+num_patients = 200
 seed = 123
 drug = "rg"
 
@@ -119,3 +125,71 @@ include("../model/$(drug)_params.jl")
 include("../scripts/setup/init_integrate.jl")
 
 patients = generate_patients_struct(num_patients, seed, drug)
+
+#plot viiolins
+
+conditions = keys(patients[1].output_measures)
+conditions = [
+        "1.0e-5effect"
+        ,"0.1effect"
+        ,"0.25effect"
+        ,"0.5effect"
+        ,"0.75effect"
+        ,"0.9effect"
+        ,"0.99999effect"
+
+        ,"1.0e-5avg_effect"
+        ,"0.1avg_effect"
+        ,"0.25avg_effect"
+        ,"0.5avg_effect"
+        ,"0.75avg_effect"
+        ,"0.9avg_effect"
+        ,"0.99999avg_effect"
+
+        ,"random"
+]
+colors = fill(:gray, length(conditions)) # Define a color for each condition
+
+ftv_data = OrderedDict(cond => [] for cond in conditions)
+drug_auc_data = OrderedDict(cond => [] for cond in conditions)
+tumor_auc_data = OrderedDict(cond => [] for cond in conditions)
+
+for patient in patients
+    for cond in conditions
+        push!(ftv_data[cond], patient.output_measures[cond].ftv)
+        push!(drug_auc_data[cond], patient.output_measures[cond].drug_auc)
+        push!(tumor_auc_data[cond], patient.output_measures[cond].tumor_auc)
+    end
+end
+
+function create_combined_plot(metric_data, title)
+    p = plot(title=title, legend=false, grid=false)
+
+    for (i, cond) in enumerate(conditions)
+        # Create box plot with reduced width and darker fill
+        # Adjust the width parameter here to control the box width
+        box_width = 0.05 # Adjust this value as needed
+        # boxplot!(p, [cond], metric_data[cond], width=box_width, color=darker_colors[i], linecolor=:black, fillalpha=0.3, outliers_marker=:asterisk, outliers_color=:red, label=false)
+
+        # Overlay with violin plot
+        violin!(p, [cond], metric_data[cond], color=colors[i], alpha=0.7, label=false, xrotation=45)
+    end
+    # Rotate x-tick labels
+    # plot!(p, xticks=(1:length(conditions), conditions), xrotation=45)
+    return p
+end
+
+p2 = create_combined_plot(ftv_data, "FTV Distribution")
+p3 = create_combined_plot(drug_auc_data, "Drug AUC Distribution")
+p4 = create_combined_plot(tumor_auc_data, "Tumor AUC Distribution")
+
+# Function to save plot in multiple formats
+function save_plot(plot, base_filename)
+    savefig(plot, "./results/outputs_violin/$(drug)" * base_filename * ".png")
+    # savefig(plot, "./results/violin/$(drug)" * base_filename * ".svg")
+end
+
+# Save the plots
+save_plot(p2, "FTV_Distribution")
+save_plot(p3, "Drug_AUC_Distribution")
+save_plot(p4, "Tumor_AUC_Distribution")
