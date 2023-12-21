@@ -107,3 +107,15 @@ function generate_patients_struct(num_patients, seed, drug; gradation=[1e-5, 0.1
     # end
     return patients
 end
+
+num_patients = 20
+seed = 123
+drug = "rg"
+
+#loads the model equations, dosing event functions and the parameter values
+include("../model/$(drug)_pkpd2.jl")
+include("../model/$(drug)_dosing2.jl")
+include("../model/$(drug)_params.jl")
+include("../scripts/setup/init_integrate.jl")
+
+paitents = generate_patients_struct(num_patients, seed, drug)
