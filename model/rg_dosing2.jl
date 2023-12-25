@@ -23,6 +23,7 @@ max_tested = dose_amount
 tmz_treat_dosetimes = spaced_list(end_treat,1.0,0.0,0.0).*hours
 tmz_adjuv_dosetimes = spaced_list(end_time,5.0,23.0,end_treat+28.0).*hours
 rg_dosetimes = spaced_list(end_time-1.0,18.0,10.0,0.0).*hours #its the opposite18 days off and 10days on
+const num_dose_times = length(rg_dosetimes)
 
 doses = ones(length(rg_dosetimes)).*dose_amount
 
