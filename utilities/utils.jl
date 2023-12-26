@@ -75,6 +75,48 @@ function spaced_list(p, n, m, b=1)
 end
 
 """
+  makes the plot inside the optimization callback to make a gif of the trajectory
+"""
+function plotter_gif(λ)
+  opt_logits = λ
+  final_pmf = exp.(opt_logits ./ temp)
+  final_pmf ./= sum(final_pmf, dims=1)
+  opt_doses = (repeat(dose_mults,1,num_dose_times)[argmax(final_pmf, dims=1)]).*(max_tested/mult_num)
+
+  # ode_p defined insde the loop
+  sol = solve(prob, Rodas4P2(), p=[ode_p..., θ...], callback=hit)
+  c = sol[states["C"],:]
+  fv = round(c[end], digits=4)
+  cells = Array(sol)[states["C"],:]
+  # drug is defined outside the this here this function is called
+  doses = Array(sol)[states["Pla"*uppercase(drug)],:]
+  time = sol.t
+
+  dose_min = minimum(doses')
+  dose_max = maximum(doses')
+
+  cell_min = minimum(cells')
+  cell_max = maximum(cells')
+  
+  # ["#9bcfa0" "#d6818f"]
+  p1 = plot(time./24, doses', ylims=(dose_min * 0.9, dose_max * 1.1), color = "#9bcfa0", title="Dosing Simulation", linewidth=1, xaxis="time (days)", label="Drug in Plasma", ylabel="Dose Amount (mg)", legend=:topleft)
+  # yticks!(p1, dose_min:10:dose_max)
+  
+  p2 = twinx(p1)
+  plot!(p2, time./24, cells', ylims=(cell_min * 0.9, cell_max * 1.1), color = "#81b1d6", linewidth=3, linestyle = :dash, label="C", ylabel="Tumor Volume (ml)", legend=:topright)
+  # yticks!(p2, cell_min:10:cell_max)
+
+  mid_x = (maximum(time) - minimum(time))/2 + minimum(time)
+  mid_y = (maximum(cells) - minimum(cells))/2 + minimum(cells)
+
+  annotate!(mid_x, mid_y, text("\n Final Volume: $fv", :black, :left, 10))
+  annotate!(mid_x, mid_y*0.05, text("\n Cell AUC: $(sol[end,end])", :black, :left, 10))
+  annotate!(mid_x, mid_y*0.1, text("\n Drug AUC: $(trapezoidal_rule(sol.t, doses'))", :black, :left, 10))
+
+  return p1
+end
+
+"""
     create_callback()
 
 Create and return a callback function for an optimization routine and a list to store loss values.
@@ -140,7 +182,8 @@ function create_callback(total;verbose=true, animate=true, progress_bar=true, sa
       #save loss in local list
       if animate
         # push!(loss_values, current_loss)
-        frame(anim, plotter_gif(sim(x)))
+        # frame(anim, plotter_gif(sim(x)))
+        frame(anim, plotter_gif(x))
       end
 
       if early_stopping
