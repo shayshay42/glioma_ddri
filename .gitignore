@@ -2,3 +2,5 @@ Manifest.toml
 dms
 dms.pub
 .DS_Store
+sysimage.so
+results/
