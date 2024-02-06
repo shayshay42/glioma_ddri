@@ -33,7 +33,7 @@ include("../scripts/setup/compute_dose_bvp.jl")
 include("../scripts/setup/precompute_scale.jl")
 include("../scripts/setup/compute_outputs.jl")
 
-function generate_patients_struct(num_patients, seed, drug; min_dose=true, gradation=[1e-5, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0-1e-5])
+function generate_patients_struct(num_patients, seed, drug; effect=false, min_dose=true, gradation=[1e-5, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0-1e-5])
     patients = Vector{Patient}(undef, num_patients)
 
     drug_params = eval(Symbol(uppercase(drug) * "_params"))
@@ -52,9 +52,14 @@ function generate_patients_struct(num_patients, seed, drug; min_dose=true, grada
     else
         mini_doses = doses_matrix[1,:]
     end
-    max_dose_min_tumor, min_dose_max_tumor = compute_loss_scaling_effect_based(population, maxi_doses, mini_doses, drug_dose_times)
-    scaling = [collect(s) for s in zip(max_dose_min_tumor, min_dose_max_tumor, maxi_doses, mini_doses)]
 
+    if effect
+        max_dose_min_tumor, min_dose_max_tumor = compute_loss_scaling_effect_based(population, maxi_doses, mini_doses, drug_dose_times)
+        scaling = [collect(s) for s in zip(max_dose_min_tumor, min_dose_max_tumor, maxi_doses, mini_doses)]
+    else
+        max_dose_min_tumor, min_dose_max_tumor = compute_loss_scaling(population)
+        scaling = [collect(s) for s in zip(max_dose_min_tumor, min_dose_max_tumor, ones(num_patients).*single_max, zeros(num_patients))]
+    end
     #want the average dose per patient
     avg_dose_per_gradation = mean(doses_matrix, dims=2)
         #the loss here is meaningless unless

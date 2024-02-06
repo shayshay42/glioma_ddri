@@ -21,10 +21,22 @@ struct optimum_result
     loss_trajectory::Vector{Float64}
 end
 
-function loss(θ, ode_params, scaling)
+const mult_num = 20
+const dose_mults = [0:mult_num...]
+const temp = 0.9
+
+function loss(λ, ode_params, scaling)
+    const_dose = scaling[3]/mult_num
     drug_min_scaling = scaling[4]*length(θ)
     drug_max_scaling = scaling[3]*length(θ)
-    # prob_temp = remake(prob, )
+
+    gumbel_noise = -log.(-log.(rand(length(set), num)))
+    sample_pmf = exp.((λ + gumbel_noise) ./ temp)
+    sample_pmf ./= sum(sample_pmf, dims=1)
+    θ = ((sample_pmf' * dose_mults) .* const_dose)'
+
+    drug_min_scaling = scaling[4]*length(θ)
+    drug_max_scaling = scaling[3]*length(θ)
     sol_temp = solve(prob, Rodas4P2(), p=[ode_params..., θ...], callback=hit, sensealg=nothing)
     cell = (sol_temp[end,end] - scaling[1])/(scaling[2]-scaling[1])
     drug = (sum(abs,θ)-drug_min_scaling)/(drug_max_scaling-drug_min_scaling)
@@ -54,7 +66,8 @@ function compute_optimal_doses(patients, drug)
         ode_p = patient.ode_parameters
         scaler = patient.scaling
         # init_doses = ones(length(drug_dose_times)).*minimum([patient.output_measures["0.99999effect"].doses[1], max_tested])
-        init_doses = ones(length(drug_dose_times)).*maximum([patient.output_measures["0.99999effect"].doses[1], max_tested])
+        # init_doses = ones(length(drug_dose_times)).*maximum([patient.output_measures["0.99999effect"].doses[1], max_tested])
+        init_logits = ones(mult_num, length(drug_dose_times))
         # ode_params = [population[:,i];scaling[i]]
     
         # gradient descent optimization of the dose amounts
@@ -62,10 +75,16 @@ function compute_optimal_doses(patients, drug)
         optf = Optimization.OptimizationFunction((x, _) -> loss(x, ode_p, scaler), adtype)
         lower_bound = ones(length(drug_dose_times)).*0.0#min_tested
         upper_bound = ones(length(drug_dose_times)).*patient.output_measures["0.99999effect"].doses[1]#(max_tested*1.15)#
-        optprob = Optimization.OptimizationProblem(optf, init_doses, lb=lower_bound, ub=upper_bound)
+        optprob = Optimization.OptimizationProblem(optf, init_logits, lb=lower_bound, ub=upper_bound)
         callback, losses, iter_ref = create_callback(t_iter,verbose=false, animate=false, progress_bar=false, saving=false, early_stopping=true)
         res = Optimization.solve(optprob, opt, maxiters=t_iter, callback=callback)
-        optima[i] = optimum_result(res.u, iter_ref[], losses)
+
+        opt_logits = res.u
+        final_pmf = exp.(opt_logits ./ temp)
+        final_pmf ./= sum(final_pmf, dims=1)
+        opt_doses = (repeat(dose_mults,1,length(drug_dose_times))[argmax(final_pmf, dims=1)]).*(scaler[3]/mult_num)
+
+        optima[i] = optimum_result(opt_doses, iter_ref[], losses)
         patient.output_measures["optimal"] = get_outputs(ode_p, res.u, scaler, drug)
         
         # Increment and print the number of patients that have been completed

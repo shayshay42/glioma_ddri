@@ -5,7 +5,7 @@ using LinearAlgebra
 # Set of possible values and parameters
 set = [0:10...]
 num = 2
-logits = ones(length(set), num)
+logits = rand(length(set), num)
 lr = 0.1
 max_iter = 1000
 temperature = 1
@@ -29,6 +29,7 @@ for i in 1:max_iter
     grad = ForwardDiff.gradient(λ -> begin
                                         gumbel_noise = -log.(-log.(rand(length(set), num)))
                                         sample_pmf = exp.((λ + gumbel_noise) ./ temperature)
+                                        # sample_pmf = exp.((λ) ./ temperature)
                                         sample_pmf ./= sum(sample_pmf, dims=1)
                                         x = sample_pmf' * set
                                         sum(abs2, x' - [4 5])
@@ -51,11 +52,11 @@ final_pmf = exp.(logits ./ temperature)
 final_pmf ./= sum(final_pmf, dims=1)
 
 # Select the value with the highest probability
-selected_values = set[argmax(final_pmf, dims=1)]
+selected_values = repeat(set,1,num)[argmax(final_pmf, dims=1)]
 
-println("Selected value: ", selected_value)
+println("Selected value: ", selected_values)
 println("Probability distribution: ", final_pmf)
-println("Loss at selected value: ", (selected_value - 5)^2)
+println("Loss at selected value: ", (selected_values - [4 5])^2)
 
 
 mvpmf = Array([[0.1,0.2,0.7], [0.3,0.5,0.2]])
