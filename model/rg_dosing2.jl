@@ -17,6 +17,8 @@ avg_human_surface_area = 1.7 #m^2
 tmz_treat_dose = 75.0*avg_human_surface_area
 tmz_adjuv_dose = 150.0*avg_human_surface_area
 dose_amount = 1920.0*avg_human_surface_area #1800
+max_tested = dose_amount
+
 
 tmz_treat_dosetimes = spaced_list(end_treat,1.0,0.0,0.0).*hours
 tmz_adjuv_dosetimes = spaced_list(end_time,5.0,23.0,end_treat+28.0).*hours
@@ -44,21 +46,23 @@ function affect_dose!(integrator)
     current_time = integrator.t
 
     if current_time in tmz_treat_dosetimes_set
-        integrator.u[3] += tmz_treat_dose
+        integrator.u[states["AbsTMZ"]] += tmz_treat_dose
     elseif current_time in tmz_adjuv_dosetimes_set
-        integrator.u[3] += tmz_adjuv_dose
+        integrator.u[states["AbsTMZ"]] += tmz_adjuv_dose
     end
     if current_time in rg_dosetimes_set
         p = integrator.p
         # map = p[length(ode_params)]
-        doses = p[p_num+nb_scaling_params+1:end]
+        # doses = p[p_num+nb_scaling_params+1:end]
+        doses = p[p_num+1:end]
         current_dose = doses[map[current_time]]
-        integrator.u[6] += adjust_dose(current_dose)
+        integrator.u[states["AbsRG"]] += adjust_dose(current_dose)
     end
 end
 hit = PresetTimeCallback(inject_times, affect_dose!)
 
 min_drug_dosage = 20.0*avg_human_surface_area*length(rg_dosetimes); #minimum drug dosage
+min_tested = min_drug_dosage/length(rg_dosetimes)
 
 
 function dose_heaviside(t, dosetimes, dose)

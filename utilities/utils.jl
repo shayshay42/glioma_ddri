@@ -180,9 +180,9 @@ erelu(x::Real) = max(eps(), x)
 # end
 
 
-function loss(θ, ode_params)
-  int_sol = solve(prob_jac, nothing, p=[ode_params;θ], callback=hit, sensealg=nothing)
-  cell = (int_sol[end,end]-ode_params[end-1])/(ode_params[end]-ode_params[end-1])
-  drug = (sum(abs,θ)-drug_min_scaling)/(drug_max_scaling-drug_min_scaling)
-  return  cell + drug
-end
+# function loss(θ, ode_params)
+#   int_sol = solve(prob_jac, nothing, p=[ode_params;θ], callback=hit, sensealg=nothing)
+#   cell = (int_sol[end,end]-ode_params[end-1])/(ode_params[end]-ode_params[end-1])
+#   drug = (sum(abs,θ)-drug_min_scaling)/(drug_max_scaling-drug_min_scaling)
+#   return  cell + drug
+# end

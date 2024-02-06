@@ -39,7 +39,7 @@ function compute_loss_scaling_effect_based(population, max_effect_dose_per_patie
             else
                 dosage = max_effect_dose_per_patient[i]
             end
-            p = [population[:, i]..., default_scaling..., ones(length(drug_dosetimes)).*dosage...]
+            p = [population[:, i]..., ones(length(drug_dosetimes)).*dosage...]
             p_prob = remake(prob, p=p)
             p_sol = solve(p_prob, Rodas4P2(), callback=hit)#, abstol=1e-10, reltol=1e-10,dtmax=1)#, alg_hints=[:stiff])
 

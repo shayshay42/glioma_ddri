@@ -1,7 +1,7 @@
 using Pkg, ArgParse
 
-function main(drug="rg", num_patients=1000, seed=1234)
-    vp_filename = "$(drug)_$(num_patients)_vp.jls"
+function main(drug="rg", num_patients=1000, seed=123, filename="patients_loaded_struct.jls")
+    # vp_filename = "$(drug)_$(num_patients)_vp.jls"
     # Activate and install project dependencies
     Pkg.activate(".")
     Pkg.instantiate()
@@ -9,34 +9,37 @@ function main(drug="rg", num_patients=1000, seed=1234)
     include("../../model/$(drug)_pkpd2.jl")
     include("../../model/$(drug)_dosing2.jl")
     include("../../model/$(drug)_params.jl")
-
+    include("../../scripts/setup/init_integrate.jl")
 
     # Step 0: Verify the existence of model, dosing, and params files
     verify_required_files([
-        "model/gdc_dosing2.jl",
-        "model/gdc_params.jl",
-        "model/gdc_pkpd2.jl",
-        "model/rg_dosing2.jl",
-        "model/rg_params.jl",
-        "model/rg_pkpd2.jl"
+        "model/$(drug)_dosing2.jl",
+        "model/$(drug)_params.jl",
+        "model/$(drug)_pkpd2.jl"
     ])
 
     # # Step 1: Create bounds on the varying parameters
     # include("scripts/setup/bounds4.jl")
 
-
-
-
-USE THE STRUCT FROM THE BEGINNING
-
-
-
+# USE THE STRUCT FROM THE BEGINNING
 
     # Step 2: Create virtual population
-    run(`julia scripts/setup/generate_vp4.jl --drug $drug --nbr $num_patients --filename $vp_filename --seed $seed`)
+    # run(`julia scripts/setup/generate_vp4.jl --drug $drug --nbr $num_patients --filename $vp_filename --seed $seed`)
 
     # Step 3: Compute the lower and upper bound of tumor AUC for each patient
-    run(`julia scripts/setup/scaling_v4.jl --drug $drug --filename $vp_filename`)
+    # run(`julia scripts/setup/scaling_v4.jl --drug $drug --filename $vp_filename`)
+
+    include("./setup.jl")
+    patients = generate_patients_struct(num_patients, seed, drug)
+
+    # Step 4: Compute the optimal doses
+    include("../../scripts/optimization/optimize_doses.jl")
+    optima, patients_optim = compute_optimal_doses(patients, drug)
+    
+    # Step 5: Save the optimal doses
+    open(filename, "w") do file
+        serialize(file, patients_optim)
+    end;
 
     # # Steps 4-12: Additional pipeline steps
     # # Replace `--args` with actual arguments as needed
