@@ -1,11 +1,12 @@
-include("../../../src/setup.jl")
+include("./src/setup.jl")
 #loads the model equations, dosing event functions and the parameter values
 drug = "rg"
 
-include("../../../model/$(drug)_pkpd2.jl")
-include("../../../model/$(drug)_dosing2.jl")
-include("../../../model/$(drug)_params.jl")
-include("../../../scripts/setup/init_integrate.jl")
+include("./model/$(drug)_pkpd2.jl")
+include("./model/$(drug)_dosing2.jl")
+include("./model/$(drug)_params.jl")
+include("./scripts/setup/init_integrate.jl")
+include("./utilities/utils.jl")
 
 
 using DifferentialEquations, LinearAlgebra, ModelingToolkit
@@ -17,6 +18,7 @@ using Logging
 
 using StaticArrays
 using ForwardDiff
+using FiniteDiff
 using Flux
 using BenchmarkTools
 
@@ -33,7 +35,7 @@ const mult_num = 20
 const dose_mults = [0:mult_num...]
 const unit_dose = single_max/mult_num
 const possible_doses = [0:unit_dose:single_max...]
-const temp = 1
+const temp = 0.9
 
 # an issue arises in setting the pill constant dose to vary with the maximum amount of the drug given based on the highest effect
 # to keep the loss function form going outside of 0-2 range we have to scale the loss not by effect but by plausible min and max doses
@@ -56,7 +58,7 @@ function loss(λ, ode_params, scaling)
     # θ = ((sample_pmf' * dose_mults) .* const_dose)'
     θ = (sample_pmf' * possible_doses)'
 
-    sol_temp = solve(prob, Rodas4P2(), p=[ode_params..., θ...], callback=hit, sensealg=nothing)
+    sol_temp = solve(prob, Rodas4P2(), p=[ode_params..., θ...], callback=hit, sensealg=ForwardDiffSensitivity())
     cell = (sol_temp[end,end] - scaling[1])/(scaling[2]-scaling[1])
     drug = (sum(abs,θ)-drug_min_scaling)/(drug_max_scaling-drug_min_scaling)
     loss = cell + drug
@@ -81,7 +83,7 @@ sort!(patients, by=x->x.idx)
 optima = Vector{optimum_result}(undef, length(patients))
 patients_optim = []
 
-t_iter=100
+t_iter=500
 
 # Initialize an Atomic counter
 # completed_patients = Threads.Atomic{Int64}(0)
@@ -116,6 +118,8 @@ lr_schedule = false
 decay_rate = 0.1
 
 adam = true
+finite = false
+
 beta1 = 0.9
 beta2 = 0.999
 epsilon = 1e-8
@@ -128,8 +132,9 @@ for i in 1:t_iter
     push!(losses, current_loss)
     @info "Epoch: $i, Loss: $current_loss, LR: $lr"
     # println(argmax(logits, dims=1))
-    println(prob_to_dose(logits))
-    frame(anim, plotter_gif(logits, current_loss))
+    converted_doses = prob_to_dose(logits)
+    println(converted_doses)
+    frame(anim, plotter_gif(converted_doses, current_loss))
 
     if early_stopping
         if length(loss_values) > window+1
@@ -142,7 +147,13 @@ for i in 1:t_iter
     end
 
     Random.seed!(123)
-    grad = ForwardDiff.gradient(λ -> loss(λ, ode_p, scaler), logits)
+
+    if finite
+        grad = FiniteDiff.finite_difference_gradient(λ -> loss(λ, ode_p, scaler), logits)
+    else
+        grad = ForwardDiff.gradient(λ -> loss(λ, ode_p, scaler), logits)
+    end
+
     if adam
         m = beta1 * m + (1 - beta1) * grad
         v = beta2 * v + (1 - beta2) * grad.^2
@@ -160,7 +171,14 @@ for i in 1:t_iter
     end
 end
 
+if finite
+    gif(anim, "results/$(drug)_probmask_test_ADAM_finitediff_temp$(temp)_lr$(lr)_$(today_date).gif", fps=10)
+    plot(losses, label="Loss", xlabel="Epoch", ylabel="Loss", title="Loss vs Epoch")
+    savefig("results/$(drug)_probmask_losses_test_ADAM_finitediff_temp$(temp)_lr$(lr)_$(today_date).png")
+else
+    gif(anim, "results/$(drug)_probmask_test_ADAM_forwarddiff_temp$(temp)_lr$(lr)_$(today_date).gif", fps=10)
+    plot(losses, label="Loss", xlabel="Epoch", ylabel="Loss", title="Loss vs Epoch")
+    savefig("results/$(drug)_probmask_losses_test_ADAM_forwarddiff_temp$(temp)_lr$(lr)_$(today_date).png")
+end
 
-gif(anim, "results/$(drug)_probmask_test_ADAM_temp$(temp)_lr$(lr)_$(today_date).gif", fps=10)
-plot(losses, label="Loss", xlabel="Epoch", ylabel="Loss", title="Loss vs Epoch")
-savefig("results/$(drug)_probmask_losses_test_ADAM_temp$(temp)_lr$(lr)_$(today_date).png")
+    

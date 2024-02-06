@@ -22,7 +22,8 @@ This uses the Latin Hypercube Sampling (LHS) method to generate the virtual popu
 A matrix representing the generated population parameters.
 
 """
-function generate_virtual_population_LHS(TMZ_params, drug_params, param_values, param_order, num_patients, seed)
+function generate_virtual_population_lhs(TMZ_params, drug_params, param_values, param_order, num_patients, seed)
+    N = num_patients
     fractions=[eps(); [0:1/num_patients:1...][2:end-1]; 1-eps()]
     # Set the random seed for reproducibility
     Random.seed!(seed)

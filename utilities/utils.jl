@@ -78,11 +78,11 @@ end
   makes the plot inside the optimization callback to make a gif of the trajectory
 """
 function plotter_gif(λ, loss)
-  opt_logits = λ
-  final_pmf = exp.(opt_logits ./ temp)
-  final_pmf ./= sum(final_pmf, dims=1)
+  # opt_logits = λ
+  # final_pmf = exp.(opt_logits ./ temp)
+  # final_pmf ./= sum(final_pmf, dims=1)
   # println(argmax(final_pmf, dims=1))
-  opt_doses = (repeat(dose_mults,1,num_dose_times)[argmax(final_pmf, dims=1)]).*(max_tested/mult_num)
+  opt_doses = λ #(repeat(dose_mults,1,num_dose_times)[argmax(final_pmf, dims=1)]).*(max_tested/mult_num)
 
   # ode_p defined insde the loop
   sol = solve(prob, Rodas4P2(), p=[ode_p..., opt_doses...], callback=hit)

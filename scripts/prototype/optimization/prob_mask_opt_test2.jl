@@ -7,6 +7,7 @@ include("../../../model/$(drug)_params.jl")
 include("../../../scripts/setup/init_integrate.jl")
 
 
+
 using DifferentialEquations, LinearAlgebra, ModelingToolkit
 
 using Random, Serialization
@@ -86,7 +87,7 @@ optima = Vector{optimum_result}(undef, length(patients))
 patients_optim = []
 
 adtype = Optimization.AutoForwardDiff()
-opt = Optim.MomentumGradientDescent()
+opt = Optim.LBFGS()#MomentumGradientDescent()
 t_iter=100
 
 # Initialize an Atomic counter
