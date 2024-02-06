@@ -28,7 +28,7 @@ struct Patient
 end
 
 #inlcude the functions that are used in setting up the struct
-include("../scripts/setup/generate_vp.jl")
+include("../scripts/setup/generate_vp_lhs.jl")
 include("../scripts/setup/compute_dose_bvp.jl")
 include("../scripts/setup/precompute_scale.jl")
 include("../scripts/setup/compute_outputs.jl")
@@ -39,7 +39,7 @@ function generate_patients_struct(num_patients, seed, drug; effect=false, min_do
     drug_params = eval(Symbol(uppercase(drug) * "_params"))
     drug_dose_times = eval(Symbol(drug * "_dosetimes"))
     # Generate population
-    population = generate_virtual_population(TMZ_params, drug_params, ode_params, param_order, num_patients, seed)
+    population = generate_virtual_population_lhs(TMZ_params, drug_params, ode_params, param_order, num_patients, seed)
     # gradation = [1e-5, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0 -1e-5]
     patient_doses = compute_dose_effect(population, gradation)
     # gradation = patient_doses.grad
