@@ -70,7 +70,7 @@ function prob_to_dose(prob)
     final_pmf = exp.(prob ./ temp)
     final_pmf ./= sum(final_pmf, dims=1)
     doses = (repeat(possible_doses,1,num_dose_times)[argmax(final_pmf, dims=1)])
-    return doses
+    return doses[1:end]
 end
 
 num_patients = 400
@@ -85,7 +85,7 @@ sort!(patients, by=x->x.idx)
 optima = Vector{optimum_result}(undef, length(patients))
 patients_optim = []
 
-t_iter=2
+t_iter=100
 
 # Initialize an Atomic counter
 completed_patients = Threads.Atomic{Int64}(0)
@@ -104,7 +104,7 @@ function adam!(logits, grad, m,v, i, lr=0.1, beta1=0.9, beta2=0.999, epsilon=1e-
 end
 
 
-Threads.@threads for i in 1:3#length(patients)
+Threads.@threads for i in 1:length(patients)
     println("Processing patient $i, Completed patients: $(completed_patients[])")
     #retrive element in patients vector with .idx property equal to i
     patient = patients[findfirst(x->x.idx==i, patients)]
