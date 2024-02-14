@@ -1,6 +1,6 @@
 function get_outputs(parameters, doses, scaling, drug_name)
-    drug_min_scaling = scaling[4]
-    drug_max_scaling = scaling[3]
+    drug_min_scaling = scaling[4]*num_dose_times
+    drug_max_scaling = scaling[3]*num_dose_times
     prob_temp = remake(prob, p=[parameters..., doses...])
     sol_temp = solve(prob_temp, Rodas4P2(), callback=hit, saveat=1)
     cell = (sol_temp[end,end] - scaling[1])/(scaling[2]-scaling[1])

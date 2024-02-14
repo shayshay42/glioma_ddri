@@ -7,40 +7,30 @@ using Colors, ColorSchemes
 
 gr()
 
-drug = "gdc"
-#loads the PK/PD model
-include("../../models/$(drug)_pkpd2.jl")
-#loads t"../..g schedule and amount
-include("../../models/$(drug)_dosing2.jl")
-#loads t"../.. parameters
-include("../../models/$(drug)_params.jl")
-#loads t"../..ty functions
-include("../../utilities/utils.jl")
-# include("../../assets/generate_vp.jl")
-struct ConditionalOutput
-    loss::Float64
-    ftv::Float64
-    drug_auc::Float64
-    tumor_auc::Float64
-    trajectory::Array{Float64,2}
+include("../../../src/setup.jl")
+#loads the model equations, dosing event functions and the parameter values
+drug = "rg"
+
+include("../../../model/$(drug)_pkpd2.jl")
+include("../../../model/$(drug)_dosing2.jl")
+include("../../../model/$(drug)_params.jl")
+include("../../../scripts/setup/init_integrate.jl")
+include("../../../utilities/utils.jl")
+
+struct optimum_result
+    dose_vector::Vector{Float64}
+    iter_num::Int64
+    loss_trajectory::Vector{Float64}
 end
 
-struct Patient
-    idx::Int
-    ode_parameters::Vector{Float64}
-    minimal_tumor::Float64
-    maximal_tumor::Float64
-    optimal_doses::Vector{Float64}
-    output_measures::Dict{String, ConditionalOutput}
-end
-filename = "./assets/$(drug)_patients_struct_v5.jls" # Update this to the correct path
+filename = "results/optim/rg_probmask_test_ADAM_finitediff_temp2_lr0.1_2024-02-07_400patients.jls" # Update this to the correct path
 patients = deserialize(filename)
 
 using DataFrames
 
 # Assuming `patients` is an array of `Patient`
 ode_params = [p.ode_parameters for p in patients]
-optimal_doses = [p.optimal_doses for p in patients]
+optimal_doses = [p.output_measures["optimal"].dose_vector for p in patients]
 
 # Convert to DataFrame for easier manipulation
 df = DataFrame(ode_params=ode_params, optimal_doses=optimal_doses)
