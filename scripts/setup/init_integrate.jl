@@ -1,6 +1,6 @@
 using DifferentialEquations, ModelingToolkit
 
-u0 = zeros(9)
+u0 = zeros(10)
 u0[1] = C0
 tspan = (0,end_time+7).*hours
 # p = [ode_params..., default_scaling..., doses...]

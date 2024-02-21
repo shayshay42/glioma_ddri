@@ -1,14 +1,14 @@
-function compute_loss_scaling(population, max_doses, min_doses)
+function compute_loss_scaling(population)
     nb_patients = size(population, 2)
     max_dose_min_tumor = Vector{Float64}(undef,  nb_patients)
     min_dose_max_tumor = Vector{Float64}(undef,  nb_patients)
 
-    for (j, dosage) in enumerate([max_doses, min_doses])
+    for (j, dosage) in enumerate([ones(num_dose_times).*(single_max), zeros(num_dose_times)])
         Threads.@threads for i in 1:nb_patients
             # println("\rPatient: $i")
-            p = [population[:, i];1.0;1.0;dosage]
-            p_prob = remake(prob_jac, p=p)
-            p_sol = solve(p_prob, callback=hit)#, abstol=1e-10, reltol=1e-10,dtmax=1)#, alg_hints=[:stiff])
+            p = [population[:, i]..., dosage...]
+            p_prob = remake(prob, p=p)
+            p_sol = solve(p_prob, Rodas4P2(), callback=hit)#, abstol=1e-10, reltol=1e-10,dtmax=1)#, alg_hints=[:stiff])
 
             sols = Array(p_sol)
 

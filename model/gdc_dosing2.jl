@@ -11,11 +11,12 @@ avg_human_surface_area = 1.7 #m^2
 tmz_treat_dose = 75.0*avg_human_surface_area #360*mg_correcttion #0.075*1.7
 tmz_adjuv_dose = 150.0*avg_human_surface_area #0.150*1.7
 dose_amount = 600.0
-max_tested = dose_amount
+const max_tested = dose_amount
 
 tmz_treat_dosetimes = spaced_list(end_treat,1.0,0.0,0.0).*hours
 tmz_adjuv_dosetimes = spaced_list(end_time,5.0,23.0,end_treat+28.0).*hours
 gdc_dosetimes = spaced_list(end_time-1.0,18.0,10.0,0.0).*hours
+const num_dose_times = length(rg_dosetimes)
 
 doses = ones(length(gdc_dosetimes)).*dose_amount
 
