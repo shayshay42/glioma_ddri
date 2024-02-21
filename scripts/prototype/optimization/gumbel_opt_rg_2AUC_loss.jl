@@ -171,8 +171,11 @@ Threads.@threads for i in 1:length(patients)
 end
     
 #save the patients vector that contains the optimized patient structs
-open("results/optim/$(drug)_probmask_2AUCloss_2_test_ADAM_finitediff_temp$(temp)_lr$(lr)_$(today_date)_$(num_patients)patients.jls", "w") do file
+open("results/optim/$(drug)_probmask_2AUCloss_ADAM_finitediff_temp$(temp)_lr$(lr)_$(today_date)_$(num_patients)patients.jls", "w") do file
     serialize(file, patients_optim)
 end
 
 #save optima also
+open("results/optim/$(drug)_probmask_2AUCloss_ADAM_finitediff_temp$(temp)_lr$(lr)_$(today_date)_$(num_patients)patients_optima.jls", "w") do file
+    serialize(file, optima)
+end
