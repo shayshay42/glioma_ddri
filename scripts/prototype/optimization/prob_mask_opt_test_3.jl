@@ -83,7 +83,7 @@ sort!(patients, by=x->x.idx)
 optima = Vector{optimum_result}(undef, length(patients))
 patients_optim = []
 
-t_iter=500
+t_iter=200
 
 # Initialize an Atomic counter
 # completed_patients = Threads.Atomic{Int64}(0)
