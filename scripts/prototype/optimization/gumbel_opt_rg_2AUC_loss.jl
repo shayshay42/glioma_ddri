@@ -118,6 +118,12 @@ function adam!(logits, grad, m,v, i, lr=0.1, beta1=0.9, beta2=0.999, epsilon=1e-
     logits .-= lr * m_hat ./ (sqrt.(v_hat) .+ epsilon)
 end
 
+# ForwardDiff.gradient(λ -> loss(λ, ode_p, scaler), η)
+# m = zeros(size(η));
+# v = zeros(size(η));
+# j=1
+# adam!(η, grad, m, v, j)
+
 
 Threads.@threads for i in 1:length(patients)
     println("Processing patient $i, Completed patients: $(completed_patients[])")
@@ -153,7 +159,7 @@ Threads.@threads for i in 1:length(patients)
     for j in 1:t_iter
         @info "Iter: $j"
         # Compute gradient and loss, assuming loss function returns the loss value
-        grad, current_loss = ForwardDiff.gradient(λ -> loss(λ, ode_p, scaler), logits)
+        grad = ForwardDiff.gradient(λ -> loss(λ, ode_p, scaler), logits)
         adam!(logits, grad, m, v, j)
     end
 
