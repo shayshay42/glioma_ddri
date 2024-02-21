@@ -77,7 +77,7 @@ function prob_to_dose(prob)
     return doses[1:end]
 end
 
-num_patients = 3
+num_patients = 100
 seed = 123
 
 patients = generate_patients_struct(num_patients, seed, drug)
@@ -100,7 +100,7 @@ scaler = [patient.output_measures["max"].tumor_auc, patient.output_measures["non
 loss(η, ode_p, scaler) 
 
 
-t_iter=3
+t_iter=200
 
 # Initialize an Atomic counter
 completed_patients = Threads.Atomic{Int64}(0)
