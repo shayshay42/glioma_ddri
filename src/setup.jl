@@ -112,7 +112,8 @@ function generate_patients_struct(num_patients, seed, drug; effect=false, min_do
         max_dose = doses_matrix[end,i]
         random_doses = min_dose .+ (max_dose - min_dose) .* rand(length(drug_dose_times))
         output_measures["random"] = get_outputs(population[:,i], random_doses, scaling[i], drug)
-
+        output_measures["none"] = get_outputs(population[:,i], zeros(length(drug_dose_times)), scaling[i], drug)
+        output_measures["max"] = get_outputs(population[:,i], ones(length(drug_dose_times)).*single_max, scaling[i], drug)
         # Create a new Patient instance
         # patients[i] = Patient(i, population[:, i], scaling[i], zeros(length(drug_dose_times)), output_measures)
         patients[i] = Patient(i, population[:, i], scaling[i], output_measures)

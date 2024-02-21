@@ -6,19 +6,19 @@ today = Dates.today()
 
 drug = "rg"
 #
-include("../model/$(drug)_pkpd2.jl")
-include("../model/$(drug)_dosing2.jl")
-include("../model/$(drug)_params.jl")
-include("../scripts/setup/init_integrate.jl")
-include("../assets/pk_params.jl")
-include("../scripts/setup/generate_vp_lhs.jl")
-include("../scripts/setup/compute_dose_bvp.jl")
-include("../scripts/setup/precompute_scale.jl")
-include("../scripts/setup/compute_outputs.jl")
-include("../src/setup.jl")
-include("../utilities/utils.jl")
+include("./model/$(drug)_pkpd2.jl")
+include("./model/$(drug)_dosing2.jl")
+include("./model/$(drug)_params.jl")
+include("./scripts/setup/init_integrate.jl")
+include("./assets/pk_params.jl")
+include("./scripts/setup/generate_vp_lhs.jl")
+include("./scripts/setup/compute_dose_bvp.jl")
+include("./scripts/setup/precompute_scale.jl")
+include("./scripts/setup/compute_outputs.jl")
+include("./src/setup.jl")
+include("./utilities/utils.jl")
 
-filename = "results/optim/rg_probmask_2AUCloss_test_ADAM_finitediff_temp2_lr0.1_2024-02-17_400patients.jls"
+# filename = "results/optim/rg_probmask_2AUCloss_test_ADAM_finitediff_temp2_lr0.1_2024-02-17_400patients.jls"
 patients = deserialize(open(filename, "r"))
 
 
@@ -417,7 +417,7 @@ function death_time(v_init)
  
  display(plt)
  
- savefig(plt, "./results/$(drug)_kaplan_meier.svg")
- savefig(plt, "./results/$(drug)_kaplan_meier.png")
+ savefig(plt, "./results/$(drug)_kaplan_meier_2AUC.svg")
+ savefig(plt, "./results/$(drug)_kaplan_meier_2AUC.png")
  
  

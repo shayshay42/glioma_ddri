@@ -1,12 +1,16 @@
-include("./src/setup.jl")
+include("../../../src/setup.jl")
 #loads the model equations, dosing event functions and the parameter values
 drug = "rg"
 
-include("./model/$(drug)_pkpd2.jl")
-include("./model/$(drug)_dosing2.jl")
-include("./model/$(drug)_params.jl")
-include("./scripts/setup/init_integrate.jl")
-include("./utilities/utils.jl")
+include("../../../model/$(drug)_pkpd2.jl")
+include("../../../model/$(drug)_dosing2.jl")
+include("../../../model/$(drug)_params.jl")
+include("../../../scripts/setup/init_integrate.jl")
+include("../../../utilities/utils.jl")
+
+
+# filename = "results/optim/rg_probmask_test_ADAM_finitediff_temp2_lr0.1_2024-02-08_400patients.jls"
+# patients = deserialize(open(filename, "r"))
 
 
 using DifferentialEquations, LinearAlgebra, ModelingToolkit
@@ -49,8 +53,8 @@ const temp = 2
 
 function loss(λ, ode_params, scaling)
     # const_dose = scaling[3]/mult_num
-    drug_min_scaling = scaling[4]*num_dose_times
-    drug_max_scaling = scaling[3]*num_dose_times
+    drug_min_scaling = scaling[4]#*num_dose_times
+    drug_max_scaling = scaling[3]#*num_dose_times
 
     # gumbel_noise = -log.(-log.(rand(length(set), num)))
     gumbel_noise = -log.(-log.(rand(length(possible_doses), num_dose_times)))
@@ -61,7 +65,7 @@ function loss(λ, ode_params, scaling)
 
     sol_temp = solve(prob, Rodas4P2(), p=[ode_params..., θ...], callback=hit, sensealg=nothing)
     cell = (sol_temp[end,end] - scaling[1])/(scaling[2]-scaling[1])
-    drug = (sum(abs,θ)-drug_min_scaling)/(drug_max_scaling-drug_min_scaling)
+    drug = (sol_temp[end-1,end]-drug_min_scaling)/(drug_max_scaling-drug_min_scaling)
     loss = cell + drug
     return loss
 end
@@ -85,7 +89,18 @@ sort!(patients, by=x->x.idx)
 optima = Vector{optimum_result}(undef, length(patients))
 patients_optim = []
 
-t_iter=100
+# patients[1].output_measures["max"].tumor_auc
+i=1
+patient = patients[findfirst(x->x.idx==i, patients)]
+ode_p = patient.ode_parameters
+# scaler = patient.scaling
+scaler = [patient.output_measures["max"].tumor_auc, patient.output_measures["none"].tumor_auc, patient.output_measures["max"].drug_auc, patient.output_measures["none"].drug_auc]
+ξ = rand(length(drug_dose_times)).*single_max
+η = ones(mult_num+1, length(drug_dose_times))
+loss(η, ode_p, scaler) 
+
+
+t_iter=300
 
 # Initialize an Atomic counter
 completed_patients = Threads.Atomic{Int64}(0)
@@ -109,7 +124,9 @@ Threads.@threads for i in 1:length(patients)
     #retrive element in patients vector with .idx property equal to i
     patient = patients[findfirst(x->x.idx==i, patients)]
     ode_p = patient.ode_parameters
-    scaler = patient.scaling
+    # scaler = patient.scaling
+    scaler = [patient.output_measures["max"].tumor_auc, patient.output_measures["none"].tumor_auc, patient.output_measures["max"].drug_auc, patient.output_measures["none"].drug_auc]
+    
 
     init_logits = ones(mult_num+1, num_dose_times)
     logits = deepcopy(init_logits)
@@ -119,13 +136,22 @@ Threads.@threads for i in 1:length(patients)
     m = zeros(size(logits))
     v = zeros(size(logits))
 
+    # Initialize an array to store loss values at each iteration
+    loss_values = Float64[]
+
     for j in 1:t_iter
         @info "Iter: $j"
-        grad = ForwardDiff.gradient(λ -> loss(λ, ode_p, scaler), logits)
+        # Compute gradient and loss, assuming loss function returns the loss value
+        grad, current_loss = ForwardDiff.gradient(λ -> begin
+                                                          val = loss(λ, ode_p, scaler)
+                                                          push!(loss_values, val) # Store the loss at each iteration
+                                                          val
+                                                       end, logits)
         adam!(logits, grad, m, v, j)
     end
     converted_doses = prob_to_dose(logits)
-    optima[i] = optimum_result(converted_doses, t_iter, [])
+    # println(converted_doses)
+    optima[i] = optimum_result(converted_doses, t_iter, loss_values)
     patient.output_measures["optimal"] = get_outputs(ode_p, converted_doses, scaler, drug)
     
     # Increment and print the number of patients that have been completed
@@ -145,6 +171,8 @@ Threads.@threads for i in 1:length(patients)
 end
     
 #save the patients vector that contains the optimized patient structs
-open("results/optim/$(drug)_probmask_test_ADAM_finitediff_temp$(temp)_lr$(lr)_$(today_date)_$(num_patients)patients.jls", "w") do file
+open("results/optim/$(drug)_probmask_2AUCloss_2_test_ADAM_finitediff_temp$(temp)_lr$(lr)_$(today_date)_$(num_patients)patients.jls", "w") do file
     serialize(file, patients_optim)
 end
+
+#save optima also
