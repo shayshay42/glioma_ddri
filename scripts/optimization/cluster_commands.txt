@@ -1,8 +1,9 @@
 ssh -X hajhashs@ssh.dms.umontreal.ca
 password
 cd /NOBACKUP/hajhashs/vctrial (has the repository but may need to pull off github)
-cd DosageOptimization.jl
+cd DosageOptimization.jl -> checkout correct branch
 simulation -> choose machine -> connect
+Julia -> ]activate . -> instantiate
 nohup env JULIA_NUM_THREADS=23 julia ./scripts/optimization/vp_optimization.jl >> output26june.log &
 
 nohup env JULIA_NUM_THREADS=30 stdbuf -o0 julia -p 30 ./scripts/optimization/vp_optimization2.jl > 15july.out 2> 15july.err &
