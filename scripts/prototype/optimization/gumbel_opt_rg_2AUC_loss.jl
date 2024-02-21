@@ -139,16 +139,24 @@ Threads.@threads for i in 1:length(patients)
     # Initialize an array to store loss values at each iteration
     loss_values = Float64[]
 
+    # for j in 1:t_iter
+    #     @info "Iter: $j"
+    #     # Compute gradient and loss, assuming loss function returns the loss value
+    #     grad, current_loss = ForwardDiff.gradient(λ -> begin
+    #                                                       val = loss(λ, ode_p, scaler)
+    #                                                       push!(loss_values, val) # Store the loss at each iteration
+    #                                                       val
+    #                                                    end, logits)
+    #     adam!(logits, grad, m, v, j)
+    # end
+
     for j in 1:t_iter
         @info "Iter: $j"
         # Compute gradient and loss, assuming loss function returns the loss value
-        grad, current_loss = ForwardDiff.gradient(λ -> begin
-                                                          val = loss(λ, ode_p, scaler)
-                                                          push!(loss_values, val) # Store the loss at each iteration
-                                                          val
-                                                       end, logits)
+        grad, current_loss = ForwardDiff.gradient(λ -> loss(λ, ode_p, scaler), logits)
         adam!(logits, grad, m, v, j)
     end
+
     converted_doses = prob_to_dose(logits)
     # println(converted_doses)
     optima[i] = optimum_result(converted_doses, t_iter, loss_values)
