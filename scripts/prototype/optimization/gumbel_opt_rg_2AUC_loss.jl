@@ -77,7 +77,7 @@ function prob_to_dose(prob)
     return doses[1:end]
 end
 
-num_patients = 100
+num_patients = 5
 seed = 123
 
 patients = generate_patients_struct(num_patients, seed, drug)
@@ -100,7 +100,7 @@ scaler = [patient.output_measures["max"].tumor_auc, patient.output_measures["non
 loss(η, ode_p, scaler) 
 
 
-t_iter=200
+t_iter=300
 
 # Initialize an Atomic counter
 completed_patients = Threads.Atomic{Int64}(0)
@@ -119,6 +119,12 @@ function adam!(logits, grad, m,v, i, lr=0.1, beta1=0.9, beta2=0.999, epsilon=1e-
 end
 
 # ForwardDiff.gradient(λ -> loss(λ, ode_p, scaler), η)
+# loss_values = Float64[]
+# ForwardDiff.gradient(λ -> begin
+#                                                           val = loss(λ, ode_p, scaler)
+#                                                           push!(loss_values, val) # Store the loss at each iteration
+#                                                           val
+#                                                        end, η)
 # m = zeros(size(η));
 # v = zeros(size(η));
 # j=1
@@ -148,7 +154,7 @@ Threads.@threads for i in 1:length(patients)
     # for j in 1:t_iter
     #     @info "Iter: $j"
     #     # Compute gradient and loss, assuming loss function returns the loss value
-    #     grad, current_loss = ForwardDiff.gradient(λ -> begin
+    #     grad = ForwardDiff.gradient(λ -> begin
     #                                                       val = loss(λ, ode_p, scaler)
     #                                                       push!(loss_values, val) # Store the loss at each iteration
     #                                                       val
@@ -157,8 +163,11 @@ Threads.@threads for i in 1:length(patients)
     # end
 
     for j in 1:t_iter
-        @info "Iter: $j"
+        @info "p$i Iter: $j"
         # Compute gradient and loss, assuming loss function returns the loss value
+        current_loss = loss(logits, ode_p, scaler)
+        # println("Current loss: ", curent_loss)
+        push!(loss_values, current_loss)
         grad = ForwardDiff.gradient(λ -> loss(λ, ode_p, scaler), logits)
         adam!(logits, grad, m, v, j)
     end
@@ -183,7 +192,14 @@ Threads.@threads for i in 1:length(patients)
     end
     push!(patients_optim, patient) 
 end
-    
+
+#make loss plots for all 5 patients super imposed
+p = plot()
+for i in 1:5
+    plot!(p,1:300, optima[i].loss_trajectory, label="Patient $i")
+end
+p
+
 #save the patients vector that contains the optimized patient structs
 open("results/optim/$(drug)_probmask_2AUCloss_ADAM_finitediff_temp$(temp)_lr$(lr)_$(today_date)_$(num_patients)patients.jls", "w") do file
     serialize(file, patients_optim)

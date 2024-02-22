@@ -172,14 +172,34 @@ end
 conditions = collect(unique_conditions)
 
 conditions = [ "1.0e-5effect"
-              ,"0.1effect"
-              ,"0.25effect"
-              ,"0.5effect"
-              ,"0.75effect"
-              ,"0.9effect"
-              ,"0.99999effect"
+               ,"1.0e-5avg_effect"
+               ,"0.1effect"
+               ,"0.1avg_effect"
+               ,"0.25effect"
+               ,"0.25avg_effect"
+               ,"0.5effect"
+               ,"0.5avg_effect"
+               ,"0.75effect"
+               ,"0.75avg_effect"
+               ,"0.9effect"
+               ,"0.9avg_effect"
+               ,"0.99999effect"
+               ,"0.99999avg_effect"
+               ,"random"
+               ,"optimal"]
+
+
+conditions = [ "1.0e-5avg_effect"
+              ,"0.1avg_effect"
+              ,"0.25avg_effect"
+              ,"0.5avg_effect"
+              ,"0.75avg_effect"
+              ,"0.9avg_effect"
+              ,"0.99999avg_effect"
               ,"random"
               ,"optimal"]
+
+
 
 # Now place "random" and "optimal" at the desired positions
 # Assuming "random" should be at the very end and "optimal" just before "random"
@@ -229,7 +249,7 @@ gr()
 
 # Function to create a combined box and violin plot with adjusted aesthetics
 function create_combined_plot(metric_data, title)
-    p = plot(title=title, legend=false, grid=false, yscale=:log10)
+    p = plot(title=title, legend=false, grid=false)
 
     for (i, cond) in enumerate(conditions)
         # Create box plot with reduced width and darker fill
@@ -253,8 +273,8 @@ p4 = create_combined_plot(tumor_auc_data, "Tumor AUC Distribution")
 
 # Function to save plot in multiple formats
 function save_plot(plot, base_filename)
-    savefig(plot, "./results/violin/$(drug)_2AUC_$(today)_" * base_filename * ".png")
-    savefig(plot, "./results/violin/$(drug)_2AUC_$(today)_" * base_filename * ".svg")
+    savefig(plot, "./results/violin/$(drug)_2AUC_avg_$(today)_" * base_filename * ".png")
+    savefig(plot, "./results/violin/$(drug)_2AUC_avg_$(today)_" * base_filename * ".svg")
 end
 
 # Save the plots
@@ -287,6 +307,141 @@ save_plot(p5, "log_Drug_AUC_Distribution")
 save_plot(p6, "log_Tumor_AUC_Distribution")
 save_plot(p7, "log_FTV_Distribution")
 save_plot(p8, "log_Loss_Distribution")
+
+
+
+
+
+
+
+#make an interactive histogram of 0.5avgeffect drug_auc
+
+p = plot(legend=:topright, title="Drug AUC Distribution")
+histogram!(p, log.(drug_auc_data["0.5avg_effect"]), bins=30, alpha=0.5, label="0.5avg_effect", color=:lightblue)
+
+
+using Plots
+
+# Function to create a combined violin and scatter plot
+function create_violin_scatter_plot(metric_data, title; point_size=1, jitter_width=0.9)
+    p = plot(title=title, legend=false, grid=false, yscale=:log10)
+
+    conditions = collect(keys(metric_data)) # Ensure conditions are in the desired order
+    n_conditions = length(conditions)
+    
+    # Prepare colors for better visualization
+    colors = palette(:tab10, n_conditions)
+    
+    for (i, cond) in enumerate(conditions)
+        # Calculate positions for scatter points with jitter
+        xs = fill(i, length(metric_data[cond])) .+ (rand(length(metric_data[cond])) .- 0.5) .* jitter_width
+
+        # Violin plot for the distribution
+        violin!(p, [i], metric_data[cond], label=false, color=colors[i], alpha=0.4)
+
+        # Scatter plot for individual points
+        scatter!(p, xs, metric_data[cond], label=false, color=colors[i], markersize=point_size, markerstrokealpha=0, alpha=0.7)
+    end
+
+    # Customize axes
+    xticks!(p, 1:n_conditions, conditions)
+    xaxis!(p, rotation=45, xlabel="Condition")
+    yaxis!(p, ylabel="Metric Value")
+    
+    return p
+end
+
+# Example usage with one of your metrics
+# Assuming `metric_data` is one of your data dictionaries like `loss_data`, `ftv_data`, etc.
+p = create_violin_scatter_plot(drug_auc_data, "drug auc disctributions")
+display(p)
+
+
+
+
+using Plots
+plotlyjs() # Switch to the PlotlyJS backend for interactivity
+
+# Define a structure to hold metric values and patient indices
+struct MetricPoint
+    value::Float64
+    patient_idx::Int
+    jittered_x::Float64
+end
+
+# Function to create an interactive combined violin and scatter plot with hover metadata
+function create_interactive_violin_scatter_plot(conditions, patients, property, scale; point_size=1.5, jitter_width=0.9)
+    if scale == :log10
+        p = plot(title="$(property)", legend=false, grid=false, yscale=:log10)
+    else
+        p = plot(title="$(property)", legend=false, grid=false)
+    end
+
+    n_conditions = length(conditions)
+    colors = palette(:tab10, n_conditions)
+    
+    for (i, cond) in enumerate(conditions)
+        metric_points = MetricPoint[]
+        
+        for patient in patients
+            if haskey(patient.output_measures, cond)
+                value = getproperty(patient.output_measures[cond], property)
+                idx = patient.idx
+                jittered_x = i + (rand() - 0.5) * jitter_width
+                push!(metric_points, MetricPoint(value, idx, jittered_x))
+            end
+        end
+        
+        # Sort metric points by jittered x to keep the association correct
+        sort!(metric_points, by = m -> m.jittered_x)
+
+        # Prepare hover text
+        hover_texts = ["Patient: $(m.patient_idx)" for m in metric_points]
+        xs = [m.jittered_x for m in metric_points]
+        ys = [m.value for m in metric_points]
+
+        # Check associations
+        # for i in 1:length(xs)
+        #     println("X: ", xs[i], ", Y: ", ys[i], ", Hover: ", hover_texts[i])
+        # end
+
+        # Violin plot for the distribution
+        violin!(p, [i], ys, label=false, color=colors[i], alpha=0.5, hovertext="")
+
+        # Interactive scatter plot for individual points with hover information
+        scatter!(p, xs, ys, label=false, color=colors[i], markersize=point_size, markerstrokealpha=0, alpha=0.7, 
+                 hovertext=hover_texts)
+    end
+
+    xticks!(p, 1:n_conditions, conditions)
+    xaxis!(p, rotation=45, xlabel="Condition")
+    yaxis!(p, ylabel=property)
+    
+    return p
+end
+
+# Example usage
+p = create_interactive_violin_scatter_plot(conditions, patients, :loss, nothing)
+display(p)
+
+#find index in patients of a patient with idx property = 378
+idx = findfirst(x->x.idx==378, patients)
+
+#make all the plots and save them
+for output in [:loss, :ftv, :drug_auc, :tumor_auc]
+    p = create_interactive_violin_scatter_plot(conditions, patients, output, :log10)
+    savefig(p, "./results/violin/$(drug)_$(output)_violin_log_scatter_plot.html")
+end
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -44,6 +44,8 @@ function generate_patients_struct(num_patients, seed, drug; effect=false, min_do
     patient_doses = compute_dose_effect(population, gradation)
     # gradation = patient_doses.grad
     doses_matrix = patient_doses.doses_matrix
+    @info "number of unstable patients: $(length(patient_doses.unstable_patients))"
+    println(patient_doses.unstable_patients)
     # retcodes = patient_doses.retcodes
     # max_dose_min_tumor, min_dose_max_tumor = compute_loss_scaling(population, doses, fill(min_drug_dosage/length(doses), length(doses)))
     maxi_doses = doses_matrix[end,:]
@@ -98,7 +100,7 @@ function generate_patients_struct(num_patients, seed, drug; effect=false, min_do
     Random.seed!(seed)
     Threads.@threads for i in 1:num_patients
         @info "Generating Patient $i"
-        output_measures = Dict()
+        output_measures = OrderedDict()
 
         for (j, effect) in enumerate(effect_keys)
             output_measures[effect] = get_outputs(population[:,i], ones(length(drug_dose_times)).*doses_matrix[j,i], scaling[i], drug)

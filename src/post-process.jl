@@ -337,7 +337,7 @@ function death_time(v_init)
  zero_dose_ = ContinuousCallback(find_volume_at_zero_dose, affect!)
  cbset = CallbackSet(hit, zero_dose_)
  
- u0 = zeros(Float64, 9)
+ u0 = zeros(Float64, 10)
  u0[1] = 17.7
  tspan = (0.0, end_time + 7.0) .* hours
 #  ode_params = [ode_params; [0.1,1.0]]
