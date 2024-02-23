@@ -215,7 +215,7 @@ end
 logit(x::Real) = log(x / (one(x) - x))
 logistic(x::Real) = inv(exp(-x) + one(x))
 
-# relu(x::Real) = max(zero(x), x)
+relu(x::Real) = max(zero(x), x)
 erelu(x::Real) = max(eps(), x)
 
 # function relu(x)

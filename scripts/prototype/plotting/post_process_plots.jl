@@ -1,22 +1,23 @@
 # filename = "results/optim/rg_probmask_test_ADAM_finitediff_temp2_lr0.1_2024-02-08_400patients.jls"
 filename = "results/optim/rg_probmask_2AUCloss_2_test_ADAM_finitediff_temp2_lr0.1_2024-02-19_400patients.jls"
+filename = "results/optim/rg_dms_100patients_2AUCloss_2024-02-23_richoutputsmeasures.jls"
 
 using Dates, StatsPlots, Plots, Serialization, OrderedCollections
 today = Dates.today()
 
 drug = "rg"
 #
-include("./model/$(drug)_pkpd2.jl")
-include("./model/$(drug)_dosing2.jl")
-include("./model/$(drug)_params.jl")
-include("./scripts/setup/init_integrate.jl")
-include("./assets/pk_params.jl")
-include("./scripts/setup/generate_vp_lhs.jl")
-include("./scripts/setup/compute_dose_bvp.jl")
-include("./scripts/setup/precompute_scale.jl")
-include("./scripts/setup/compute_outputs.jl")
-include("./src/setup.jl")
-include("./utilities/utils.jl")
+include("../../../model/$(drug)_pkpd2.jl")
+include("../../../model/$(drug)_dosing2.jl")
+include("../../../model/$(drug)_params.jl")
+include("../../../scripts/setup/init_integrate.jl")
+include("../../../assets/pk_params.jl")
+include("../../../scripts/setup/generate_vp_lhs.jl")
+include("../../../scripts/setup/compute_dose_bvp.jl")
+include("../../../scripts/setup/precompute_scale.jl")
+include("../../../scripts/setup/compute_outputs.jl")
+include("../../../src/setup.jl")
+include("../../../utilities/utils.jl")
 
 # filename = "results/optim/rg_probmask_2AUCloss_test_ADAM_finitediff_temp2_lr0.1_2024-02-17_400patients.jls"
 patients = deserialize(open(filename, "r"))
@@ -28,10 +29,13 @@ losses = [patient.output_measures["optimal"].loss for patient in patients]
 ftvs = [patient.output_measures["optimal"].ftv for patient in patients]    
 drug_aucs = [patient.output_measures["optimal"].drug_auc for patient in patients]
 tumor_aucs = [patient.output_measures["optimal"].tumor_auc for patient in patients]
+dose_sums = [sum(patient.output_measures["optimal"].doses) for patient in patients]
+tmz_aucs = [patient.output_measures["optimal"].drug2_auc for patient in patients]
+
 
 if drug == "rg"
     pars = keys(RG_params)
-    criteria = [("Loss", losses), ("FTV", ftvs), ("Drug AUC", drug_aucs), ("Tumor AUC", tumor_aucs)]
+    criteria = [("Loss", losses), ("FTV", ftvs), ("Drug AUC", drug_aucs), ("Tumor AUC", tumor_aucs), ("TMZ AUC", tmz_aucs), ("Dose Sum", dose_sums)]
     for par in pars
         par_values = [patient.ode_parameters[indexin([par], param_order)[1]] for patient in patients]
         push!(criteria, (par, par_values))
@@ -56,8 +60,8 @@ for (criterion_name, criterion_values) in criteria
 
     # Generate heatmap
     heatmap_title = "Sorted by " * criterion_name
-    heatmap_filename_png = "./results/drug_matrix/$(drug)_heatmap_2AUC_2__$(today)_" * lowercase(criterion_name) * "_.png"
-    heatmap_filename_svg = "./results/drug_matrix/$(drug)_heatmap_2AUC_2__$(today)_" * lowercase(criterion_name) * "_.svg"
+    heatmap_filename_png = "./results/drug_matrix/$(drug)_heatmap_2AUC_rich_$(today)_" * lowercase(criterion_name) * "_.png"
+    heatmap_filename_svg = "./results/drug_matrix/$(drug)_heatmap_2AUC_2_rich_$(today)_" * lowercase(criterion_name) * "_.svg"
     # cgrad(:matter, 10, categorical = true)palette(:acton10, 5)
     # Creating the heatmap
     heatmap_plot = heatmap(slate', color=discrete_palette, xlabel="Day", ylabel="Patient", title=heatmap_title, size=(600, 1200))
@@ -173,6 +177,7 @@ conditions = collect(unique_conditions)
 
 conditions = [ "1.0e-5effect"
                ,"1.0e-5avg_effect"
+               
                ,"0.1effect"
                ,"0.1avg_effect"
                ,"0.25effect"
@@ -185,6 +190,7 @@ conditions = [ "1.0e-5effect"
                ,"0.9avg_effect"
                ,"0.99999effect"
                ,"0.99999avg_effect"
+
                ,"random"
                ,"optimal"]
 
@@ -198,6 +204,30 @@ conditions = [ "1.0e-5avg_effect"
               ,"0.99999avg_effect"
               ,"random"
               ,"optimal"]
+
+conditions =["1.0e-5effect",
+             "1.0e-5avg_effect",
+             "0.001effect",
+             "0.001avg_effect",
+             "0.1effect",
+             "0.1avg_effect",
+             "0.25effect",
+             "0.25avg_effect",
+             "0.5effect",
+             "0.5avg_effect",
+             "0.75effect",
+             "0.75avg_effect",
+             "0.9effect",
+             "0.9avg_effect",
+             "0.99999effect",
+             "0.99999avg_effect",
+             "random_effect",
+             "none",
+             "random",
+             "half",
+             "min",
+             "optimal",
+             "max"]
 
 
 
@@ -216,6 +246,8 @@ loss_data = OrderedDict(cond => Float64[] for cond in conditions)
 ftv_data = OrderedDict(cond => Float64[] for cond in conditions)
 drug_auc_data = OrderedDict(cond => Float64[] for cond in conditions)
 tumor_auc_data = OrderedDict(cond => Float64[] for cond in conditions)
+dose_sum_data = OrderedDict(cond => Float64[] for cond in conditions)
+combo_auc_data = OrderedDict(cond => Float64[] for cond in conditions)
 
 # Extract data from patients for all conditions
 for patient in patients
@@ -225,6 +257,8 @@ for patient in patients
             push!(ftv_data[cond], patient.output_measures[cond].ftv)
             push!(drug_auc_data[cond], patient.output_measures[cond].drug_auc)
             push!(tumor_auc_data[cond], patient.output_measures[cond].tumor_auc)
+            push!(dose_sum_data[cond], sum(patient.output_measures[cond].doses))
+            push!(combo_auc_data[cond], patient.output_measures[cond].drug_auc + patient.output_measures[cond].drug2_auc)
         end
     end
 end
@@ -371,10 +405,11 @@ end
 
 # Function to create an interactive combined violin and scatter plot with hover metadata
 function create_interactive_violin_scatter_plot(conditions, patients, property, scale; point_size=1.5, jitter_width=0.9)
+    title = "Distribution of $(property) by Condition"
     if scale == :log10
-        p = plot(title="$(property)", legend=false, grid=false, yscale=:log10)
+        p = plot(title=title, legend=false, grid=false, yscale=:log10)
     else
-        p = plot(title="$(property)", legend=false, grid=false)
+        p = plot(title=title, legend=false, grid=false)
     end
 
     n_conditions = length(conditions)
@@ -428,9 +463,9 @@ display(p)
 idx = findfirst(x->x.idx==378, patients)
 
 #make all the plots and save them
-for output in [:loss, :ftv, :drug_auc, :tumor_auc]
+for output in [:loss, :ftv, :drug_auc, :tumor_auc, :drug2_auc, [:drug_auc, :drug2_auc], :dose_sum]
     p = create_interactive_violin_scatter_plot(conditions, patients, output, :log10)
-    savefig(p, "./results/violin/$(drug)_$(output)_violin_log_scatter_plot.html")
+    savefig(p, "./results/violin/$(drug)_$(output)_rich_violin_log_scatter_plot.html")
 end
 
 
@@ -439,6 +474,141 @@ end
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function create_interactive_violin_scatter_plot_dose_sum(conditions, patients, scale; point_size=1.5, jitter_width=0.9)
+    title = "Distribution of dose sum by Condition"
+    if scale == :log10
+        p = plot(title=title, legend=false, grid=false, yscale=:log10)
+    else
+        p = plot(title=title, legend=false, grid=false)
+    end
+
+    n_conditions = length(conditions)
+    colors = palette(:tab10, n_conditions)
+    
+    for (i, cond) in enumerate(conditions)
+        metric_points = MetricPoint[]
+        
+        for patient in patients
+            if haskey(patient.output_measures, cond)
+                value = sum(patient.output_measures[cond].doses)
+                idx = patient.idx
+                jittered_x = i + (rand() - 0.5) * jitter_width
+                push!(metric_points, MetricPoint(value, idx, jittered_x))
+            end
+        end
+        
+        # Sort metric points by jittered x to keep the association correct
+        sort!(metric_points, by = m -> m.jittered_x)
+
+        # Prepare hover text
+        hover_texts = ["Patient: $(m.patient_idx)" for m in metric_points]
+        xs = [m.jittered_x for m in metric_points]
+        ys = [m.value for m in metric_points]
+
+        # Check associations
+        # for i in 1:length(xs)
+        #     println("X: ", xs[i], ", Y: ", ys[i], ", Hover: ", hover_texts[i])
+        # end
+
+        # Violin plot for the distribution
+        violin!(p, [i], ys, label=false, color=colors[i], alpha=0.5, hovertext="")
+
+        # Interactive scatter plot for individual points with hover information
+        scatter!(p, xs, ys, label=false, color=colors[i], markersize=point_size, markerstrokealpha=0, alpha=0.7, 
+                 hovertext=hover_texts)
+    end
+
+    xticks!(p, 1:n_conditions, conditions)
+    xaxis!(p, rotation=45, xlabel="Condition")
+    yaxis!(p, ylabel="dose sum")
+    
+    return p
+end
+
+# Example usage
+p = create_interactive_violin_scatter_plot_dose_sum(conditions, patients, :log10)
+savefig(p, "./results/violin/$(drug)_dose_sum_rich_violin_log_scatter_plot.html")
+
+
+
+
+
+
+
+
+function create_interactive_violin_scatter_plot_dose_sum(conditions, patients, scale; point_size=1.5, jitter_width=0.9)
+    title = "Distribution combo toxicity by Condition"
+    if scale == :log10
+        p = plot(title=title, legend=false, grid=false, yscale=:log10)
+    else
+        p = plot(title=title, legend=false, grid=false)
+    end
+
+    n_conditions = length(conditions)
+    colors = palette(:tab10, n_conditions)
+    
+    for (i, cond) in enumerate(conditions)
+        metric_points = MetricPoint[]
+        
+        for patient in patients
+            if haskey(patient.output_measures, cond)
+                value = getproperty(patient.output_measures[cond], :drug_auc) + getproperty(patient.output_measures[cond], :drug2_auc)
+                idx = patient.idx
+                jittered_x = i + (rand() - 0.5) * jitter_width
+                push!(metric_points, MetricPoint(value, idx, jittered_x))
+            end
+        end
+        
+        # Sort metric points by jittered x to keep the association correct
+        sort!(metric_points, by = m -> m.jittered_x)
+
+        # Prepare hover text
+        hover_texts = ["Patient: $(m.patient_idx)" for m in metric_points]
+        xs = [m.jittered_x for m in metric_points]
+        ys = [m.value for m in metric_points]
+
+        # Check associations
+        # for i in 1:length(xs)
+        #     println("X: ", xs[i], ", Y: ", ys[i], ", Hover: ", hover_texts[i])
+        # end
+
+        # Violin plot for the distribution
+        violin!(p, [i], ys, label=false, color=colors[i], alpha=0.5, hovertext="")
+
+        # Interactive scatter plot for individual points with hover information
+        scatter!(p, xs, ys, label=false, color=colors[i], markersize=point_size, markerstrokealpha=0, alpha=0.7, 
+                 hovertext=hover_texts)
+    end
+
+    xticks!(p, 1:n_conditions, conditions)
+    xaxis!(p, rotation=45, xlabel="Condition")
+    yaxis!(p, ylabel="dose sum")
+    
+    return p
+end
+
+p = create_interactive_violin_scatter_plot_dose_sum(conditions, patients, :log10)
+savefig(p, "./results/violin/$(drug)_combo_drug_rich_violin_log_scatter_plot.html")
 
 
 

@@ -18,8 +18,6 @@ function get_outputs(parameters, doses, scaling, drug_name)
 end
 
 function get_outputs_auc(parameters, doses, scaling, drug_name)
-    drug_min_scaling = scaling[4]*num_dose_times
-    drug_max_scaling = scaling[3]*num_dose_times
     prob_temp = remake(prob, p=[parameters..., doses...])
     sol_temp = solve(prob_temp, Rodas4P2(), callback=hit, saveat=1)
 
@@ -31,6 +29,10 @@ function get_outputs_auc(parameters, doses, scaling, drug_name)
     cell = (cell_auc - scaling[1])/(scaling[2]-scaling[1])
     drug = (drug_auc - scaling[4])/(scaling[3]-scaling[4])
     loss = cell + drug
+
+    drug2_auc = sol_temp[states["PlaTMZAUC"],end]
+
+    trajectory = hcat(sol_temp[states["C"],:], sol_temp[states[drug_compartment],:])
     
-    return ConditionalOutput(doses, loss, ftv, drug_auc, cell_auc)
+    return ConditionalOutput2(doses, loss, ftv, drug_auc, cell_auc, drug2_auc, trajectory)
 end

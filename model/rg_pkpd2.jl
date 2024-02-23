@@ -40,13 +40,14 @@ function pk_pd!(du,u,p,t)#(du::Vector{Float64}, u::Vector{Float64}, p::Vector{Fl
     dC = C * r * log(K / C) - (E * fun / 72)#delta * C
     dD = (E * fun / 72)#delta * C
 
+    dpTMZauc = PlaTMZ
     dpRGauc = PlaRG
     dcAUC = C
     
-    du .= [dC, dD, dAbsTMZ, dPlaTMZ, dCSFTMZ, dAbsRG, dPlaRG, dTisRG, dpRGauc, dcAUC]
+    du .= [dC, dD, dAbsTMZ, dPlaTMZ, dCSFTMZ, dAbsRG, dPlaRG, dTisRG, dpTMZauc, dpRGauc, dcAUC]
 end
 # create a dictionary of the state and their index
-states = OrderedDict(zip(["C", "D", "AbsTMZ", "PlaTMZ", "CSFTMZ", "AbsRG", "PlaRG", "TisRG", "PlaRGAUC", "cAUC"], 1:10))
+states = OrderedDict(zip(["C", "D", "AbsTMZ", "PlaTMZ", "CSFTMZ", "AbsRG", "PlaRG", "TisRG", "PlaTMZAUC", "PlaRGAUC", "cAUC"], 1:11))
 
 function pk_pd_alt!(du,u,p,t)#(du::Vector{Float64}, u::Vector{Float64}, p::Vector{Float64}, t::Float64)
     gamma_1,psi,C0,D0,r,K,BW,IC50_1,Imax_1,IC50_2,gamma_2,Imax_2,xi,VD1,Cl1,k23,ka1,k32,Cl2,ka2,Vpla,Q,Vtis = p[1:p_num]

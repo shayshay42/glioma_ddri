@@ -56,3 +56,36 @@ function compute_loss_scaling_effect_based(population, max_effect_dose_per_patie
     end
     return max_dose_min_tumor, min_dose_max_tumor
 end
+
+
+function compute_loss_scaling_AUC(vp_param_matrix, maxi_doses, mini_doses, drug)
+    nb_patients = size(vp_param_matrix, 2)
+    max_dose_min_tumor = Vector{Float64}(undef,  nb_patients)
+    min_dose_max_tumor = Vector{Float64}(undef,  nb_patients)
+    max_dose_max_drug = Vector{Float64}(undef,  nb_patients)
+    min_dose_min_drug = Vector{Float64}(undef,  nb_patients)
+
+    for (j, dosage) in enumerate([maxi_doses, mini_doses])
+        Threads.@threads for i in 1:nb_patients
+            # println("\rPatient: $i")
+            p = [vp_param_matrix[:, i]..., dosage...]
+            p_prob = remake(prob, p=p)
+            p_sol = solve(p_prob, Rodas4P2(), callback=hit)#, abstol=1e-10, reltol=1e-10,dtmax=1)#, alg_hints=[:stiff])
+
+            sols = Array(p_sol)
+
+            cAUC = sols[states["cAUC"],end]
+            plasmadrugAUC = sols[states["Pla"*uppercase(drug)*"AUC"],end]
+
+            if j == 1
+                max_dose_min_tumor[i] = cAUC
+                max_dose_max_drug[i] = plasmadrugAUC
+            else
+                min_dose_max_tumor[i] = cAUC
+                min_dose_min_drug[i] = plasmadrugAUC
+            end
+        end
+    end
+    #change to component array
+    return max_dose_min_tumor, min_dose_max_tumor, max_dose_max_drug, min_dose_min_drug
+end
